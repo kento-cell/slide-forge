@@ -4,10 +4,25 @@
 > クラウド AI / ローカル AI / オフライン Markdown 変換 の 3 モードに対応。サブスクと別課金の API を強要しない設計。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tauri](https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite)](https://vite.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+
+## ⬇ ダウンロード (デスクトップ版)
+
+| OS | ファイル | サイズ目安 |
+|---|---|---|
+| Windows | `Slide_Forge_*.msi` または `*-setup.exe` | 約 10 MB |
+| macOS | `Slide_Forge_*.dmg` (Universal: Intel + Apple Silicon) | 約 15 MB |
+| Linux | `slide-forge_*.AppImage` または `*.deb` | 約 12 MB |
+
+**👉 [最新リリースページ](https://github.com/kento-cell/slide-forge/releases/latest) からダウンロード**
+
+> **初回起動の注意**: コード署名なし OSS のため警告が出ます。
+> - Windows: 「詳細情報」→「実行」
+> - macOS: 右クリック → 「開く」
 
 ## 何ができるか
 
@@ -27,14 +42,23 @@
 | **データ流出が嫌** | **Ollama ローカル LLM**で完全 PC 内で完結。外部送信ゼロ |
 | **どのプロバイダ?** | 初回ウィザードで 1 画面選択 → ガイド付きセットアップ |
 
-## クイックスタート
+## クイックスタート (開発者向け)
+
+ソースから動かす場合:
 
 ```bash
 git clone https://github.com/kento-cell/slide-forge
 cd slide-forge
 npm install
-npm run dev
-# → http://localhost:5173
+
+# A. ブラウザで開発サーバ
+npm run dev    # → http://localhost:1420
+
+# B. デスクトップアプリで起動 (要 Rust toolchain)
+npm run tauri:dev
+
+# C. exe / dmg / AppImage を自分でビルド
+npm run tauri:build
 ```
 
 ## AI セットアップ早見表
