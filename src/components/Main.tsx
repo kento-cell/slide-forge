@@ -10,6 +10,7 @@ import type { ThemeId } from "../types";
 export function Main() {
   const settings = useAppStore((s) => s.settings);
   const setTheme = useAppStore((s) => s.setTheme);
+  const resetSetup = useAppStore((s) => s.resetSetup);
   const prompt = useAppStore((s) => s.prompt);
   const promptTouched = useAppStore((s) => s.promptTouched);
   const setPrompt = useAppStore((s) => s.setPrompt);
@@ -126,6 +127,13 @@ export function Main() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6">
+        <button
+          type="button"
+          onClick={resetSetup}
+          className="mb-2 text-sm text-slate-500 hover:underline"
+        >
+          ← モード選択に戻る
+        </button>
         <h1 className="font-head text-2xl font-bold">プロンプトを書いて [生成]</h1>
         <p className="text-sm text-slate-500">
           {isOffline
