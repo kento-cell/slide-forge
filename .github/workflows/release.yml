@@ -57,16 +57,40 @@ jobs:
         # See ci.yml for why npm install is preferred over npm ci.
         run: npm install --no-audit --no-fund
 
+      - name: Disable updater artifacts when signing key is not configured
+        # The Secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_
+        # PRIVATE_KEY_PASSWORD` must be set on the repo for the in-app
+        # updater to work. If they're missing, tauri-action would
+        # otherwise try to use empty strings and fail with
+        # "failed to decode secret key". Detect that case here and
+        # patch tauri.conf.json to skip updater-artifact generation,
+        # so workflow_dispatch / pre-release-tagged builds still
+        # complete successfully — they just won't carry latest.json.
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not set — disabling updater artifacts for this build."
+            node -e "
+              const fs = require('fs');
+              const path = 'src-tauri/tauri.conf.json';
+              const c = JSON.parse(fs.readFileSync(path, 'utf8'));
+              if (c.bundle) c.bundle.createUpdaterArtifacts = false;
+              fs.writeFileSync(path, JSON.stringify(c, null, 2));
+            "
+          else
+            echo 'TAURI_SIGNING_PRIVATE_KEY detected — full signed release with updater manifest.'
+          fi
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Signing keys for the auto-updater. Set these as repo secrets:
-          #   TAURI_SIGNING_PRIVATE_KEY          - contents of the .key file
-          #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD - empty string if generated without password
-          # When present, tauri-action also publishes `latest.json` (the
-          # update manifest read by the in-app updater) alongside the
-          # platform installers.
+          # Signing keys for the auto-updater. Optional: when both are
+          # missing, the previous step disables updater artifacts so
+          # the build still produces installers. When present, tauri-
+          # action publishes `latest.json` alongside the installers.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
