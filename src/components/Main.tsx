@@ -22,6 +22,7 @@ export function Main() {
 
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const isOffline = settings.provider.id === "offline";
   // Offline mode parses the textarea as Markdown directly, so the
@@ -47,6 +48,19 @@ export function Main() {
     [setPrompt, setError],
   );
 
+  // Cap any single LLM call. Cloud providers usually answer in <30s;
+  // local Ollama models may take 1-3min on a heavy machine. Five
+  // minutes is forgiving without leaving the user trapped on a hung
+  // request.
+  const GENERATION_TIMEOUT_MS = 5 * 60 * 1000;
+
+  function handleCancel() {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }
+
   async function handleGenerate() {
     setError(null);
     const userInput = (promptTouched ? prompt : sampleForCurrentMode).trim();
@@ -54,6 +68,18 @@ export function Main() {
       setError("プロンプトを入力してください");
       return;
     }
+
+    // Wire an AbortController so the user can cancel mid-flight and
+    // we still bound the worst case with a timeout. The hard timeout
+    // and the user's cancel both flow through the same signal so the
+    // provider stops fetching ASAP.
+    handleCancel();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeoutId = window.setTimeout(() => {
+      controller.abort(new DOMException("timeout", "TimeoutError"));
+    }, GENERATION_TIMEOUT_MS);
+
     setGenerating(true);
     try {
       let markdown: string;
@@ -64,6 +90,7 @@ export function Main() {
           settings.provider,
           SYSTEM_PROMPT,
           buildUserPrompt(userInput),
+          controller.signal,
         );
       }
       const cleaned = stripCodeFence(markdown);
@@ -76,8 +103,22 @@ export function Main() {
       setDeck(deck, cleaned);
       setScreen("result");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "生成に失敗しました");
+      if (controller.signal.aborted) {
+        const reason = controller.signal.reason;
+        if (reason instanceof DOMException && reason.name === "TimeoutError") {
+          setError(
+            `生成が ${GENERATION_TIMEOUT_MS / 60000} 分以内に完了しませんでした。` +
+              "プロンプトを短くするか、別のモデル/プロバイダで再試行してください。",
+          );
+        } else {
+          setError("キャンセルしました");
+        }
+      } else {
+        setError(e instanceof Error ? e.message : "生成に失敗しました");
+      }
     } finally {
+      window.clearTimeout(timeoutId);
+      if (abortRef.current === controller) abortRef.current = null;
       setGenerating(false);
     }
   }
@@ -182,14 +223,25 @@ export function Main() {
             </label>
           ))}
         </div>
-        <button
-          type="button"
-          className="btn-primary px-8 py-3 text-lg"
-          onClick={handleGenerate}
-          disabled={generating}
-        >
-          {generating ? "生成中…" : "▶ 生成"}
-        </button>
+        <div className="flex items-center gap-2">
+          {generating && (
+            <button
+              type="button"
+              className="btn-outline px-4 py-3 text-sm"
+              onClick={handleCancel}
+            >
+              ⏹ キャンセル
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-primary px-8 py-3 text-lg"
+            onClick={handleGenerate}
+            disabled={generating}
+          >
+            {generating ? "生成中…" : "▶ 生成"}
+          </button>
+        </div>
       </div>
 
       {error && (

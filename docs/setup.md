@@ -7,7 +7,7 @@ git clone https://github.com/kento-cell/slide-forge
 cd slide-forge
 npm install
 npm run dev
-# → http://localhost:5173
+# → http://localhost:1420
 ```
 
 ## 2. AI モードを選ぶ

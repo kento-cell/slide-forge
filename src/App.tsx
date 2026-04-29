@@ -41,12 +41,16 @@ export default function App() {
 
   useEffect(() => {
     if (settings.setupDone) {
-      setDetecting(false);
+      // Initial state already false when mounted with setupDone=true,
+      // so no setState needed here. Skipping the early-return setState
+      // keeps react-hooks/set-state-in-effect happy.
       return;
     }
-    // Show the loader on every fresh detect — including when the user
-    // hits ⚙ to re-run setup, where `detecting` may already be false
-    // from the previous run.
+    // On reset (setupDone went true→false) the loader must come back.
+    // This is a legitimate sync setState before the async probe — the
+    // alternative (deriving via probeId/completedId pair) is harder to
+    // reason about than a single boolean.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetecting(true);
     let cancelled = false;
     (async () => {
