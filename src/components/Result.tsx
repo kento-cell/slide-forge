@@ -91,10 +91,20 @@ export function Result() {
     setGenerating(true);
     try {
       const text = (promptTouched ? prompt : DEFAULT_PROMPT).trim();
+      // Force a visibly different deck on regenerate. Without this
+      // hint the LLM tends to land on the same titles + structure
+      // because its sampling temperature is fixed and the input
+      // prompt is identical. Appending an explicit "do it differently"
+      // instruction shakes the output without losing fidelity to the
+      // user's original intent.
+      const regenHint =
+        "\n\n[再生成依頼]\n前回とは構成・章立て・例示の数値・スライドタイトルを大きく変えて、" +
+        "同じテーマを別の切り口で再構成してください。SECTION の章タイトル、STAT の数値の見せ方、" +
+        "FLOW の段階分け、CARDS の3要素は前回と必ず異なるものを選んでください。";
       const md = await callLLM(
         settings.provider,
         SYSTEM_PROMPT,
-        buildUserPrompt(text),
+        buildUserPrompt(text + regenHint),
         controller.signal,
       );
       const cleaned = md
