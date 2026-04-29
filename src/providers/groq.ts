@@ -7,7 +7,7 @@ export async function callGroq(
   signal?: AbortSignal,
 ): Promise<string> {
   if (!cfg.apiKey) throw new Error("Groq API キーが未設定です");
-  const model = cfg.model || "llama-3.1-70b-versatile";
+  const model = cfg.model || "llama-3.3-70b-versatile";
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {

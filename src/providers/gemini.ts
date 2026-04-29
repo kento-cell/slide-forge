@@ -7,7 +7,7 @@ export async function callGemini(
   signal?: AbortSignal,
 ): Promise<string> {
   if (!cfg.apiKey) throw new Error("Gemini API キーが未設定です");
-  const model = cfg.model || "gemini-1.5-flash";
+  const model = cfg.model || "gemini-2.5-flash";
   // Send the API key in the x-goog-api-key header rather than the URL
   // query string. URLs are easy to leak via logs, browser history,
   // proxies, and crash reports — headers don't share that exposure

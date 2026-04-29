@@ -6,6 +6,7 @@ import { Main } from "./components/Main";
 import { Result } from "./components/Result";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { detectOllama } from "./providers/ollama";
+import { migrateLegacyApiKeys } from "./lib/secrets";
 
 // Models the app generates well with, in preference order.
 // First match against the user's installed list wins.
@@ -38,6 +39,42 @@ export default function App() {
   const setProvider = useAppStore((s) => s.setProvider);
   const finishSetup = useAppStore((s) => s.finishSetup);
   const [detecting, setDetecting] = useState(!settings.setupDone);
+
+  // One-shot migration on app start: lift any plain-text apiKey that
+  // previous versions wrote to localStorage into the OS keychain, then
+  // strip it from localStorage. Idempotent — subsequent launches see
+  // the key gone from localStorage and skip silently. Async, but
+  // doesn't gate the UI: the call to setProvider in the auto-detect
+  // effect overwrites with a sanitized provider config anyway.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = localStorage.getItem("slide-forge.settings.v1");
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as {
+          provider?: { id?: string; apiKey?: string };
+        };
+        if (!parsed?.provider?.apiKey) return;
+        const moved = await migrateLegacyApiKeys(parsed);
+        if (cancelled) return;
+        if (moved.length > 0) {
+          // Re-save without apiKey by going through the store, which
+          // routes to the sanitized saveSettings path.
+          setProvider({
+            id: parsed.provider.id as never,
+            ...(parsed.provider as { model?: string; endpoint?: string }),
+            apiKey: undefined,
+          });
+        }
+      } catch (err) {
+        console.warn("[migration] legacy api key migration failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setProvider]);
 
   useEffect(() => {
     if (settings.setupDone) {

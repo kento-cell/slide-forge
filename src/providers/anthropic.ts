@@ -7,7 +7,7 @@ export async function callAnthropic(
   signal?: AbortSignal,
 ): Promise<string> {
   if (!cfg.apiKey) throw new Error("Anthropic API キーが未設定です");
-  const model = cfg.model || "claude-3-5-sonnet-latest";
+  const model = cfg.model || "claude-sonnet-4-20250514";
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {

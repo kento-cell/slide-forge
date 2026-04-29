@@ -1,4 +1,5 @@
 import type { ProviderConfig, ProviderId } from "../types";
+import { getApiKey } from "../lib/secrets";
 import { callGemini } from "./gemini";
 import { callGroq } from "./groq";
 import { callAnthropic } from "./anthropic";
@@ -24,24 +25,24 @@ export const PROVIDERS: ProviderInfo[] = [
     description: "無料枠が大きく個人利用なら実質 ¥0。日本語にも強い。",
     category: "cloud",
     free: true,
-    defaultModel: "gemini-1.5-flash",
+    defaultModel: "gemini-2.5-flash",
     apiKeyUrl: "https://aistudio.google.com/apikey",
     models: [
-      { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash (無料枠 / 高速)" },
-      { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro (高品質)" },
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash (無料枠 / 高速)" },
+      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro (高品質)" },
     ],
     needsKey: true,
   },
   {
     id: "groq",
     label: "Groq",
-    description: "Llama 3.1 70B が無料・爆速。レート制限はあり。",
+    description: "Llama 3.3 70B が無料・爆速。レート制限はあり。",
     category: "cloud",
     free: true,
-    defaultModel: "llama-3.1-70b-versatile",
+    defaultModel: "llama-3.3-70b-versatile",
     apiKeyUrl: "https://console.groq.com/keys",
     models: [
-      { id: "llama-3.1-70b-versatile", label: "Llama 3.1 70B (高品質 / 高速)" },
+      { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (高品質 / 高速)" },
       { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B (超高速)" },
     ],
     needsKey: true,
@@ -52,10 +53,11 @@ export const PROVIDERS: ProviderInfo[] = [
     description: "従量課金。高品質。長文・推論に強い。",
     category: "cloud",
     free: false,
-    defaultModel: "claude-3-5-sonnet-latest",
+    defaultModel: "claude-sonnet-4-20250514",
     apiKeyUrl: "https://console.anthropic.com/settings/keys",
     models: [
-      { id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet" },
+      { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
+      { id: "claude-3-7-sonnet-20250219", label: "Claude Sonnet 3.7" },
       { id: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku (低コスト)" },
     ],
     needsKey: true,
@@ -118,7 +120,17 @@ export async function callLLM(
       throw new Error("offline モードでは LLM は呼び出されません");
     },
   }[config.id];
-  return fn(config, systemPrompt, userPrompt, signal);
+  // Hydrate the API key from the OS keychain when the in-memory
+  // config doesn't carry one (which is the normal state after app
+  // restart — settings persistence strips apiKey on save).
+  let cfg = config;
+  const needsKey =
+    config.id !== "offline" && config.id !== "ollama" && !config.apiKey;
+  if (needsKey) {
+    const stored = await getApiKey(config.id);
+    if (stored) cfg = { ...config, apiKey: stored };
+  }
+  return fn(cfg, systemPrompt, userPrompt, signal);
 }
 
 export async function pingProvider(config: ProviderConfig): Promise<boolean> {

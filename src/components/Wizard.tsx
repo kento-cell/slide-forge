@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { PROVIDERS, getProvider, pingProvider } from "../providers";
 import { detectOllama, pullOllamaModel } from "../providers/ollama";
+import { saveApiKey } from "../lib/secrets";
 import type { ProviderId } from "../types";
 
 type Stage = "select" | "cloud" | "local";
@@ -175,7 +176,11 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
+    // Persist the key to the OS keychain (or sessionStorage in
+    // browser dev). The store keeps it in memory only — see
+    // src/lib/storage.ts which strips apiKey before persisting.
+    await saveApiKey(selected, apiKey);
     setProvider({ id: selected, apiKey, model });
     onDone();
   }
