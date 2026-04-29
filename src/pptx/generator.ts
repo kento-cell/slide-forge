@@ -173,13 +173,35 @@ function chromeTitle(s: Slide_, title: string, t: Theme) {
 
 function renderCover(s: Slide_, slide: Extract<Slide, { kind: "cover" }>, t: Theme) {
   s.background = { color: t.colors.primaryDark };
+  // Auto-illustration as full-bleed background with a dark overlay
+  // for legibility. Drawn first so subsequent shapes / text sit on top.
+  if (slide.image) {
+    s.addImage({
+      data: slide.image.dataUrl,
+      x: 0,
+      y: 0,
+      w: W,
+      h: H,
+      sizing: { type: "cover", w: W, h: H },
+    });
+    // 65% dark overlay — title and subtitle stay readable on top of
+    // any photo. Tunable: lower for brighter images.
+    s.addShape("rect", {
+      x: 0,
+      y: 0,
+      w: W,
+      h: H,
+      fill: { color: t.colors.primaryDark, transparency: 35 },
+      line: { color: t.colors.primaryDark, width: 0 },
+    });
+  }
   // Large geometric accents — corner ellipses + diagonal stripe.
   s.addShape("ellipse", {
     x: W - 3.0,
     y: -1.8,
     w: 5.5,
     h: 5.5,
-    fill: { color: t.colors.primary },
+    fill: { color: t.colors.primary, transparency: slide.image ? 30 : 0 },
     line: { color: t.colors.primary, width: 0 },
   });
   s.addShape("ellipse", {
@@ -272,6 +294,34 @@ function renderBullets(
   const items = slide.items.slice(0, 6);
   const startY = 1.5;
   const gap = 0.92;
+  // When auto-illustrated, split: text/badges occupy left ~58%,
+  // image card occupies right ~38%. Without an image the row spans
+  // full width as before.
+  const hasImage = !!slide.image;
+  const rowW = hasImage ? (W - 0.9) * 0.58 : W - 0.9;
+  if (hasImage && slide.image) {
+    const imgX = 0.5 + rowW + 0.4;
+    const imgY = 1.4;
+    const imgW = W - imgX - 0.5;
+    const imgH = H - 1.85;
+    s.addShape("roundRect", {
+      x: imgX,
+      y: imgY,
+      w: imgW,
+      h: imgH,
+      fill: { color: t.colors.bgAlt },
+      line: { color: t.colors.border, width: 1 },
+      rectRadius: 0.12,
+    });
+    s.addImage({
+      data: slide.image.dataUrl,
+      x: imgX + 0.1,
+      y: imgY + 0.1,
+      w: imgW - 0.2,
+      h: imgH - 0.2,
+      sizing: { type: "cover", w: imgW - 0.2, h: imgH - 0.2 },
+    });
+  }
   // Bigger numbered badges with shadow for stronger visual presence.
   items.forEach((item, i) => {
     const y = startY + i * gap;
@@ -280,7 +330,7 @@ function renderBullets(
     s.addShape("roundRect", {
       x: 0.45,
       y: y - 0.05,
-      w: W - 0.9,
+      w: rowW + 0.45,
       h: gap - 0.15,
       fill: { color: i % 2 === 0 ? t.colors.bgAlt : t.colors.bg },
       line: { color: t.colors.border, width: 0.75 },
@@ -319,9 +369,12 @@ function renderBullets(
     });
     // Side accent shape per item — rotates through diamond / triangle
     // / hexagon so the eye gets visual variety along the column.
+    // When the row is narrowed for an image, the accent moves inside
+    // the text column boundary to avoid overlap with the picture.
     const accentShapes = ["diamond", "triangle", "hexagon"] as const;
+    const accentX = hasImage ? 0.5 + rowW : W - 0.85;
     s.addShape(accentShapes[i % accentShapes.length], {
-      x: W - 0.85,
+      x: accentX,
       y: y + 0.18,
       w: 0.32,
       h: 0.32,
@@ -331,7 +384,7 @@ function renderBullets(
     s.addText(item, {
       x: 1.45,
       y,
-      w: W - 2.4,
+      w: rowW - 1.0,
       h: gap - 0.1,
       fontFace: t.fontBody,
       fontSize: 18,
@@ -551,6 +604,32 @@ function renderSummary(
 ) {
   chromeAccent(s, t);
   chromeTitle(s, slide.title, t);
+  const hasImage = !!slide.image;
+  const itemsW = hasImage ? (W - 0.9) * 0.6 : W - 1.4;
+  if (hasImage && slide.image) {
+    // Image card on right side, vertically aligned with summary list.
+    const imgX = 0.5 + itemsW + 0.4;
+    const imgY = 1.6;
+    const imgW = W - imgX - 0.5;
+    const imgH = H - 2.05;
+    s.addShape("roundRect", {
+      x: imgX,
+      y: imgY,
+      w: imgW,
+      h: imgH,
+      fill: { color: t.colors.bgAlt },
+      line: { color: t.colors.border, width: 1 },
+      rectRadius: 0.12,
+    });
+    s.addImage({
+      data: slide.image.dataUrl,
+      x: imgX + 0.1,
+      y: imgY + 0.1,
+      w: imgW - 0.2,
+      h: imgH - 0.2,
+      sizing: { type: "cover", w: imgW - 0.2, h: imgH - 0.2 },
+    });
+  }
   const items = slide.items.slice(0, 6);
   items.forEach((it, i) => {
     const y = 1.7 + i * 0.7;
@@ -579,7 +658,7 @@ function renderSummary(
     s.addText(it, {
       x: 1.3,
       y,
-      w: W - 1.8,
+      w: hasImage ? itemsW - 0.7 : W - 1.8,
       h: 0.6,
       fontFace: t.fontBody,
       fontSize: 18,
@@ -602,6 +681,27 @@ function renderSection(
   total: number,
 ) {
   s.background = { color: t.colors.primaryDark };
+  // Auto-illustration as background — placed first so the geometric
+  // overlay sits on top with reduced opacity for atmosphere.
+  if (slide.image) {
+    s.addImage({
+      data: slide.image.dataUrl,
+      x: 0,
+      y: 0,
+      w: W,
+      h: H,
+      sizing: { type: "cover", w: W, h: H },
+    });
+    // Strong dark overlay so the chapter number stays the focal point.
+    s.addShape("rect", {
+      x: 0,
+      y: 0,
+      w: W,
+      h: H,
+      fill: { color: t.colors.primaryDark, transparency: 30 },
+      line: { color: t.colors.primaryDark, width: 0 },
+    });
+  }
   // Layered geometric backdrop — large dim circle, medium primary
   // circle, small accent triangle. Creates depth without text noise.
   s.addShape("ellipse", {

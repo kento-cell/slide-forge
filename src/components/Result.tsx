@@ -266,11 +266,20 @@ function renderThumbBody(slide: Slide) {
     case "bullets":
     case "summary":
       return (
-        <ul className="space-y-1">
-          {slide.items.slice(0, 6).map((it, i) => (
-            <li key={i} className="truncate">· {it}</li>
-          ))}
-        </ul>
+        <div className="flex h-full gap-1">
+          <ul className="flex-1 space-y-1 overflow-hidden">
+            {slide.items.slice(0, 6).map((it, i) => (
+              <li key={i} className="truncate">· {it}</li>
+            ))}
+          </ul>
+          {slide.image && (
+            <img
+              src={slide.image.dataUrl}
+              alt={slide.image.alt ?? ""}
+              className="aspect-square h-full max-w-[40%] rounded-sm object-cover"
+            />
+          )}
+        </div>
       );
     case "two-column":
       return (
