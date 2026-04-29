@@ -3,6 +3,7 @@ import { useAppStore } from "../store/useAppStore";
 import { PROVIDERS, getProvider, pingProvider } from "../providers";
 import { detectOllama, pullOllamaModel } from "../providers/ollama";
 import { saveApiKey } from "../lib/secrets";
+import { openExternalUrl } from "../lib/openUrl";
 import type { ProviderId } from "../types";
 
 type Stage = "select" | "cloud" | "local";
@@ -220,14 +221,13 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
         <div className="mb-4">
           <label className="mb-1 block text-sm font-semibold">① API キーを取得</label>
           {provider.apiKeyUrl && (
-            <a
-              href={provider.apiKeyUrl}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openExternalUrl(provider.apiKeyUrl!)}
               className="btn-outline text-sm"
             >
               🌐 {provider.label} のキー取得ページを開く
-            </a>
+            </button>
           )}
         </div>
 
@@ -388,14 +388,13 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
             <p className="text-sm">
               Ollama が未インストールか、サービスが停止しています。
             </p>
-            <a
-              href="https://ollama.com/download"
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => openExternalUrl("https://ollama.com/download")}
               className="btn-outline text-sm"
             >
               🌐 Ollama をダウンロード (~200MB)
-            </a>
+            </button>
             <button className="btn-ghost text-sm ml-2" onClick={refresh}>再検出</button>
           </div>
         )}

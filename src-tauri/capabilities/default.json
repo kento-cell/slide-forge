@@ -6,6 +6,17 @@
   "permissions": [
     "core:default",
     "updater:default",
-    "process:allow-restart"
+    "process:allow-restart",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://aistudio.google.com/*" },
+        { "url": "https://console.groq.com/*" },
+        { "url": "https://console.anthropic.com/*" },
+        { "url": "https://platform.openai.com/*" },
+        { "url": "https://ollama.com/*" },
+        { "url": "https://github.com/*" }
+      ]
+    }
   ]
 }
