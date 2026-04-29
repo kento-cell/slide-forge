@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { getProvider } from "../providers";
+import { deleteApiKey } from "../lib/secrets";
 
 export function Header() {
   const settings = useAppStore((s) => s.settings);
+  const setProvider = useAppStore((s) => s.setProvider);
   const resetSetup = useAppStore((s) => s.resetSetup);
   const provider = getProvider(settings.provider.id);
   const [dark, setDark] = useState(false);
@@ -11,6 +13,21 @@ export function Header() {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
+
+  const isCloud = provider.category === "cloud";
+
+  async function handleClearKey() {
+    if (!isCloud) return;
+    const ok = window.confirm(
+      `${provider.label} の保存済み API キーを削除しますか?\n` +
+        "削除後、Cloud AI を使うには再セットアップが必要です。",
+    );
+    if (!ok) return;
+    await deleteApiKey(settings.provider.id);
+    // Drop the in-memory key too, then bounce to wizard for clarity.
+    setProvider({ id: settings.provider.id, model: settings.provider.model });
+    resetSetup();
+  }
 
   return (
     <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
@@ -35,6 +52,16 @@ export function Header() {
             />
             {provider.label}
           </span>
+          {isCloud && (
+            <button
+              type="button"
+              className="btn-ghost px-2 py-1 text-base"
+              title="保存済み API キーを削除"
+              onClick={handleClearKey}
+            >
+              🗑
+            </button>
+          )}
           <button
             type="button"
             className="btn-ghost px-2 py-1 text-base"
