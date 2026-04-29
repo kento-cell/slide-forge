@@ -93,25 +93,111 @@ export function generatedImageToSlide(image: GeneratedImage): ImageSlide {
 // Gemini implementation
 // ---------------------------------------------------------------------
 
+// Gemini's image-generation model names have churned between Aug 2025
+// and now (Apr 2026). The exact model varies by region and API tier,
+// so we probe candidates in order and use whichever the user's key has
+// access to. The :generateContent flow with responseModalities ["IMAGE"]
+// works for the gemini-* models; Imagen models use :predict which is a
+// different shape and not covered here (yet).
+const GEMINI_IMAGE_MODELS = [
+  "gemini-2.5-flash-image",
+  "gemini-2.0-flash-preview-image-generation",
+  "gemini-2.0-flash-exp-image-generation",
+];
+
 async function generateImageGemini(
   cfg: ProviderConfig,
   prompt: string,
   signal?: AbortSignal,
 ): Promise<GeneratedImage> {
-  // Gemini 2.5 image preview model returns inline image bytes.
+  const errors: string[] = [];
+  for (const model of GEMINI_IMAGE_MODELS) {
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    const body = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ["IMAGE", "TEXT"],
+      },
+    };
+    // Aborts and network errors propagate; don't silently iterate.
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": cfg.apiKey!,
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+    if (res.status === 404 || res.status === 400) {
+      // Model unavailable for this key/region — fall through to next.
+      const text = await res.text().catch(() => "");
+      errors.push(`${model} ${res.status}: ${text.slice(0, 100)}`);
+      continue;
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Gemini image gen ${res.status}: ${text.slice(0, 200)}`);
+    }
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts ?? [];
+    const imagePart = parts.find(
+      (p: unknown): p is { inlineData: { mimeType: string; data: string } } =>
+        typeof p === "object" &&
+        p !== null &&
+        "inlineData" in p &&
+        typeof (p as { inlineData?: unknown }).inlineData === "object",
+    );
+    if (!imagePart) {
+      // Some models return TEXT instead when content was filtered.
+      const textPart = parts.find(
+        (p: unknown): p is { text: string } =>
+          typeof p === "object" && p !== null && typeof (p as { text?: unknown }).text === "string",
+      );
+      const reason = textPart?.text || "原因不明";
+      throw new Error(`Gemini が画像を返しませんでした: ${reason.slice(0, 200)}`);
+    }
+    const mimeType = imagePart.inlineData.mimeType || "image/png";
+    const dataUrl = `data:${mimeType};base64,${imagePart.inlineData.data}`;
+    const dims = await measureDataUrl(dataUrl);
+    return { dataUrl, width: dims.width, height: dims.height, prompt };
+  }
+  // Final fallback: Imagen 3 via :predict endpoint. Imagen requires a
+  // billed Google Cloud account so this only works for paid keys, but
+  // it's worth trying after the free-tier gemini-* models 404.
+  try {
+    return await generateImageImagen(cfg, prompt, signal);
+  } catch (err) {
+    errors.push(
+      `imagen-3.0-generate-002: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  throw new Error(
+    `Gemini で利用可能な画像生成モデルが見つかりませんでした。` +
+      `画像生成は地域・API ティアによって対応モデルが異なります。\n` +
+      `候補モデル: ${GEMINI_IMAGE_MODELS.join(", ")}\n` +
+      `エラー詳細: ${errors.join(" | ")}`,
+  );
+}
+
+async function generateImageImagen(
+  cfg: ProviderConfig,
+  prompt: string,
+  signal?: AbortSignal,
+): Promise<GeneratedImage> {
   const url =
     "https://generativelanguage.googleapis.com/v1beta/models/" +
-    "gemini-2.5-flash-image-preview:generateContent";
+    "imagen-3.0-generate-002:predict";
   const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }],
-      },
-    ],
-    generationConfig: {
-      responseModalities: ["IMAGE"],
-    },
+    instances: [{ prompt }],
+    parameters: { sampleCount: 1 },
   };
   const res = await fetch(url, {
     method: "POST",
@@ -123,23 +209,17 @@ async function generateImageGemini(
     signal,
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Gemini image gen ${res.status}: ${text.slice(0, 200)}`);
+    const text = await res.text().catch(() => "");
+    throw new Error(`Imagen ${res.status}: ${text.slice(0, 150)}`);
   }
   const data = await res.json();
-  const parts = data?.candidates?.[0]?.content?.parts ?? [];
-  const imagePart = parts.find(
-    (p: unknown): p is { inlineData: { mimeType: string; data: string } } =>
-      typeof p === "object" &&
-      p !== null &&
-      "inlineData" in p &&
-      typeof (p as { inlineData?: unknown }).inlineData === "object",
-  );
-  if (!imagePart) {
-    throw new Error("Gemini が画像を返しませんでした。プロンプトを変えてみてください。");
+  const pred = data?.predictions?.[0];
+  const b64 = pred?.bytesBase64Encoded as string | undefined;
+  if (!b64) {
+    throw new Error("Imagen が画像を返しませんでした");
   }
-  const mimeType = imagePart.inlineData.mimeType || "image/png";
-  const dataUrl = `data:${mimeType};base64,${imagePart.inlineData.data}`;
+  const mimeType = (pred?.mimeType as string | undefined) || "image/png";
+  const dataUrl = `data:${mimeType};base64,${b64}`;
   const dims = await measureDataUrl(dataUrl);
   return { dataUrl, width: dims.width, height: dims.height, prompt };
 }
