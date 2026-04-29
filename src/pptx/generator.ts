@@ -269,48 +269,69 @@ function renderBullets(
 ) {
   chromeAccent(s, t);
   chromeTitle(s, slide.title, t);
-  const items = slide.items.slice(0, 7);
+  const items = slide.items.slice(0, 6);
   const startY = 1.5;
-  const gap = 0.78;
+  const gap = 0.92;
+  // Bigger numbered badges with shadow for stronger visual presence.
   items.forEach((item, i) => {
     const y = startY + i * gap;
-    // Subtle alternating row background — adds rhythm without
-    // overwhelming the page.
-    if (i % 2 === 0) {
-      s.addShape("rect", {
-        x: 0.4,
-        y: y - 0.05,
-        w: W - 0.8,
-        h: gap - 0.1,
-        fill: { color: t.colors.bgAlt },
-        line: { color: t.colors.bgAlt, width: 0 },
-      });
-    }
-    // Numbered circle marker (filled primary, white digit).
-    s.addShape("ellipse", {
-      x: 0.7,
-      y: y + 0.05,
-      w: 0.5,
-      h: 0.5,
-      fill: { color: t.colors.primary },
-      line: { color: t.colors.primary, width: 0 },
+    // Pill-shaped row background (rounded). Replaces the flat
+    // alternating stripe — every row gets it for consistency.
+    s.addShape("roundRect", {
+      x: 0.45,
+      y: y - 0.05,
+      w: W - 0.9,
+      h: gap - 0.15,
+      fill: { color: i % 2 === 0 ? t.colors.bgAlt : t.colors.bg },
+      line: { color: t.colors.border, width: 0.75 },
+      rectRadius: 0.1,
     });
-    s.addText(String(i + 1), {
-      x: 0.7,
+    // Drop shadow under the numbered badge — second darker ellipse
+    // offset by 0.04 inches gives a soft depth cue.
+    s.addShape("ellipse", {
+      x: 0.62,
+      y: y + 0.07,
+      w: 0.66,
+      h: 0.66,
+      fill: { color: t.colors.primaryDark },
+      line: { color: t.colors.primaryDark, width: 0 },
+    });
+    // Main numbered badge.
+    s.addShape("ellipse", {
+      x: 0.6,
       y: y + 0.05,
-      w: 0.5,
-      h: 0.5,
+      w: 0.66,
+      h: 0.66,
+      fill: { color: t.colors.primary },
+      line: { color: "FFFFFF", width: 1.5 },
+    });
+    s.addText(String(i + 1).padStart(2, "0"), {
+      x: 0.6,
+      y: y + 0.05,
+      w: 0.66,
+      h: 0.66,
       fontFace: t.fontHead,
-      fontSize: 16,
+      fontSize: 18,
       bold: true,
       color: "FFFFFF",
       align: "center",
       valign: "middle",
     });
+    // Side accent shape per item — rotates through diamond / triangle
+    // / hexagon so the eye gets visual variety along the column.
+    const accentShapes = ["diamond", "triangle", "hexagon"] as const;
+    s.addShape(accentShapes[i % accentShapes.length], {
+      x: W - 0.85,
+      y: y + 0.18,
+      w: 0.32,
+      h: 0.32,
+      fill: { color: t.colors.accent },
+      line: { color: t.colors.accent, width: 0 },
+    });
     s.addText(item, {
-      x: 1.4,
+      x: 1.45,
       y,
-      w: W - 1.9,
+      w: W - 2.4,
       h: gap - 0.1,
       fontFace: t.fontBody,
       fontSize: 18,
@@ -581,14 +602,47 @@ function renderSection(
   total: number,
 ) {
   s.background = { color: t.colors.primaryDark };
-  // Right-side soft circle accent.
+  // Layered geometric backdrop — large dim circle, medium primary
+  // circle, small accent triangle. Creates depth without text noise.
+  s.addShape("ellipse", {
+    x: W - 6.0,
+    y: -2.5,
+    w: 9,
+    h: 9,
+    fill: { color: t.colors.primary },
+    line: { color: t.colors.primary, width: 0 },
+  });
   s.addShape("ellipse", {
     x: W - 4.5,
     y: -1.5,
-    w: 7,
-    h: 7,
-    fill: { color: t.colors.primary },
-    line: { color: t.colors.primary, width: 0 },
+    w: 6,
+    h: 6,
+    fill: { color: t.colors.primaryDark },
+    line: { color: t.colors.primary, width: 2 },
+  });
+  // Diagonal accent stripe across the bottom-right corner.
+  s.addShape("rect", {
+    x: W - 3,
+    y: H - 1.6,
+    w: 4,
+    h: 0.18,
+    fill: { color: t.colors.accent },
+    line: { color: t.colors.accent, width: 0 },
+    rotate: -25,
+  });
+  // Tiny floating dots (visual texture).
+  const dots: [number, number][] = [
+    [9.5, 1.2], [10.2, 0.8], [11.0, 1.5], [11.5, 0.6], [10.6, 2.0],
+  ];
+  dots.forEach(([dx, dy]) => {
+    s.addShape("ellipse", {
+      x: dx,
+      y: dy,
+      w: 0.12,
+      h: 0.12,
+      fill: { color: t.colors.accent },
+      line: { color: t.colors.accent, width: 0 },
+    });
   });
   s.addText("CHAPTER", {
     x: 0.7,
@@ -678,6 +732,36 @@ function renderStat(
     h: 3.5,
     fill: { color: t.colors.bgAlt },
     line: { color: t.colors.bgAlt, width: 0 },
+  });
+  // Concentric ring decoration centered behind the number — three
+  // outline-only ellipses radiating outward, decreasing opacity via
+  // border thickness. Frames the headline value.
+  const cx = W / 2;
+  const cy = 3.55;
+  for (let i = 0; i < 3; i++) {
+    const r = 1.4 + i * 0.5;
+    s.addShape("ellipse", {
+      x: cx - r,
+      y: cy - r,
+      w: r * 2,
+      h: r * 2,
+      fill: { type: "none" },
+      line: { color: t.colors.primary, width: 1 - i * 0.25, dashType: "dash" },
+    });
+  }
+  // Small accent dots at each ring's compass points (decoration).
+  const dotPositions: [number, number][] = [
+    [cx, cy - 1.9], [cx + 1.9, cy], [cx, cy + 1.9], [cx - 1.9, cy],
+  ];
+  dotPositions.forEach(([dx, dy]) => {
+    s.addShape("ellipse", {
+      x: dx - 0.08,
+      y: dy - 0.08,
+      w: 0.16,
+      h: 0.16,
+      fill: { color: t.colors.accent },
+      line: { color: t.colors.accent, width: 0 },
+    });
   });
   // The big number.
   s.addText(slide.value, {
