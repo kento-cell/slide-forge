@@ -5,7 +5,7 @@ import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
-import { DEFAULT_PROMPT } from "../samples/defaultPrompt";
+import { DEFAULT_PROMPT, OFFLINE_SAMPLE_MARKDOWN } from "../samples/defaultPrompt";
 import type { Slide } from "../types";
 
 export function Result() {
@@ -53,7 +53,7 @@ export function Result() {
 
   async function handleRegenerate() {
     if (settings.provider.id === "offline") {
-      const text = (promptTouched ? prompt : DEFAULT_PROMPT).trim();
+      const text = (promptTouched ? prompt : OFFLINE_SAMPLE_MARKDOWN).trim();
       const next = parseMarkdown(text);
       setDeck(next, text);
       return;
