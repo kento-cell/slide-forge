@@ -29,7 +29,9 @@ export type SlideKind =
   | "two-column"
   | "table"
   | "quote"
-  | "summary";
+  | "summary"
+  | "section"
+  | "stat";
 
 export interface CoverSlide {
   kind: "cover";
@@ -65,6 +67,22 @@ export interface SummarySlide {
   title: string;
   items: string[];
 }
+export interface SectionSlide {
+  kind: "section";
+  /** Big two-digit chapter index, e.g. "01". */
+  index: string;
+  title: string;
+  subtitle?: string;
+}
+export interface StatSlide {
+  kind: "stat";
+  /** Big headline number, e.g. "30%" or "¥1.2B". */
+  value: string;
+  /** Caption under the number, e.g. "前年比成長率". */
+  label: string;
+  /** Optional supporting text below the caption. */
+  detail?: string;
+}
 
 export type Slide =
   | CoverSlide
@@ -72,7 +90,9 @@ export type Slide =
   | TwoColumnSlide
   | TableSlide
   | QuoteSlide
-  | SummarySlide;
+  | SummarySlide
+  | SectionSlide
+  | StatSlide;
 
 export interface Deck {
   title: string;
