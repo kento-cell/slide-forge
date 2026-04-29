@@ -19,6 +19,7 @@ import {
   generatedImageToSlide,
   isImageGenSupported,
 } from "../providers/imageGen";
+import { autoIllustrateDeck } from "../providers/autoIllustrate";
 import type { ImageSlide, ThemeId } from "../types";
 
 export function Main() {
@@ -51,6 +52,14 @@ export function Main() {
   const imageGenAbortRef = useRef<AbortController | null>(null);
   const imageElapsedSec = useElapsedSec(generatingImage);
   const imageGenSupported = isImageGenSupported(settings.provider.id);
+
+  // Per-slide auto-illustration: when on, after the deck is parsed
+  // we walk through cover/bullets/section/summary slides and embed
+  // a generated image into each.
+  const [autoIllustrate, setAutoIllustrate] = useState(false);
+  const [illustrationProgress, setIllustrationProgress] = useState<
+    { done: number; total: number; title: string } | null
+  >(null);
 
   const isOffline = settings.provider.id === "offline";
   // Offline mode parses the textarea as Markdown directly, so the
@@ -236,11 +245,34 @@ export function Main() {
         );
       }
       const cleaned = stripCodeFence(markdown);
-      const parsed = parseMarkdown(cleaned);
+      let parsed = parseMarkdown(cleaned);
       if (parsed.slides.length === 0 && pendingImages.length === 0) {
         throw new Error(
           "スライドを抽出できませんでした。# / ## の見出しを使ってください。",
         );
+      }
+      // Auto-illustrate each cover/bullets/section/summary slide
+      // with an image derived from that slide's content. Sequential
+      // because most providers rate-limit parallel image gen calls.
+      if (autoIllustrate && imageGenSupported) {
+        const illResult = await autoIllustrateDeck(
+          parsed,
+          settings.provider,
+          {
+            signal: controller.signal,
+            onProgress: (done, total, title) =>
+              setIllustrationProgress({ done, total, title }),
+          },
+        );
+        parsed = illResult.deck;
+        if (illResult.failures.length > 0) {
+          // Don't fail the whole generation — just surface what
+          // skipped so the user can retry / lower expectations.
+          setError(
+            `画像生成に失敗したスライド: ${illResult.failures.length} 件 ` +
+              `(${illResult.failures.map((f) => f.title).slice(0, 3).join(", ")} 等)`,
+          );
+        }
       }
       // Append AI-generated images (in order they were generated) to
       // the parsed deck. They become regular image slides in the deck
@@ -277,6 +309,7 @@ export function Main() {
       window.clearTimeout(timeoutId);
       if (abortRef.current === controller) abortRef.current = null;
       setGenerating(false);
+      setIllustrationProgress(null);
     }
   }
 
@@ -444,6 +477,41 @@ export function Main() {
             )}
           </>
         )}
+      </div>
+
+      {/* Per-slide auto-illustration checkbox. Hooks into handleGenerate
+          to walk cover/bullets/section/summary slides and embed an
+          image derived from each slide's content. Requires the cloud
+          provider to support image gen (Gemini / OpenAI). */}
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-900">
+        <label className="flex cursor-pointer items-start gap-2">
+          <input
+            type="checkbox"
+            checked={autoIllustrate}
+            disabled={!imageGenSupported}
+            onChange={(e) => setAutoIllustrate(e.target.checked)}
+            className="mt-0.5"
+          />
+          <div>
+            <div className="font-semibold">
+              📸 各スライドに自動でイラストを添付
+              {!imageGenSupported && (
+                <span className="ml-2 text-xs text-amber-600">
+                  (Gemini / OpenAI に切替えると有効)
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-slate-500">
+              cover / bullets / section / まとめ の各スライド内容から画像プロンプトを自動生成し、
+              スライド内に埋め込みます。 cards / table / quote 等は対象外です。
+            </div>
+            {illustrationProgress && (
+              <div className="mt-1 text-xs text-navy-700">
+                画像生成中… {illustrationProgress.done}/{illustrationProgress.total}: {illustrationProgress.title}
+              </div>
+            )}
+          </div>
+        </label>
       </div>
 
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

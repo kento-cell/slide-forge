@@ -36,16 +36,27 @@ export type SlideKind =
   | "process"
   | "cards";
 
+/** Optional auto-illustration metadata. The renderer places the image
+ *  in a slide-type-specific position when present. */
+export interface SlideImageEmbed {
+  dataUrl: string;
+  width: number;
+  height: number;
+  alt?: string;
+}
+
 export interface CoverSlide {
   kind: "cover";
   title: string;
   subtitle?: string;
   tagline?: string;
+  image?: SlideImageEmbed;
 }
 export interface BulletsSlide {
   kind: "bullets";
   title: string;
   items: string[];
+  image?: SlideImageEmbed;
 }
 export interface TwoColumnSlide {
   kind: "two-column";
@@ -69,6 +80,7 @@ export interface SummarySlide {
   kind: "summary";
   title: string;
   items: string[];
+  image?: SlideImageEmbed;
 }
 export interface SectionSlide {
   kind: "section";
@@ -76,6 +88,7 @@ export interface SectionSlide {
   index: string;
   title: string;
   subtitle?: string;
+  image?: SlideImageEmbed;
 }
 export interface StatSlide {
   kind: "stat";
