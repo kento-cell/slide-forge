@@ -85,6 +85,45 @@ function linesToSlide(title: string, lines: string[]): Slide {
     };
   }
 
+  // FLOW: 手順1 / 手順2 / 手順3 — process arrow chain. Each item
+  // can be either "label" or "label | detail" for a longer caption.
+  // The slide title goes after a colon: "## FLOW プロジェクトの段取り"
+  const flowMatch = title.match(/^FLOW(?:\s+(.+))?$/);
+  if (flowMatch) {
+    const flowTitle = flowMatch[1]?.trim() || "プロセスフロー";
+    const stepLines = lines
+      .map((l) => l.trim())
+      .filter((l) => /^[-*]\s+/.test(l))
+      .map((l) => l.replace(/^[-*]\s+/, ""));
+    if (stepLines.length >= 2) {
+      const steps = stepLines.slice(0, 5).map((line) => {
+        const [label, ...rest] = line.split("|").map((s) => s.trim());
+        return { label, detail: rest.length ? rest.join(" / ") : undefined };
+      });
+      return { kind: "process", title: flowTitle, steps };
+    }
+  }
+
+  // CARDS: 3 cards in a row. Body uses 3 bullet lines, each
+  //   "見出し | 説明文"
+  // (the pipe separates heading from body).
+  const cardsMatch = title.match(/^CARDS(?:\s+(.+))?$/);
+  if (cardsMatch) {
+    const cardsTitle = cardsMatch[1]?.trim() || "ハイライト";
+    const cardLines = lines
+      .map((l) => l.trim())
+      .filter((l) => /^[-*]\s+/.test(l))
+      .map((l) => l.replace(/^[-*]\s+/, ""))
+      .filter((l) => l.includes("|"));
+    if (cardLines.length >= 2) {
+      const cards = cardLines.slice(0, 3).map((line) => {
+        const [heading, ...rest] = line.split("|").map((s) => s.trim());
+        return { heading, body: rest.join(" / ") };
+      });
+      return { kind: "cards", title: cardsTitle, cards };
+    }
+  }
+
   const tableLines = lines.filter((l) => l.trim().startsWith("|"));
   if (tableLines.length >= 2) {
     return parseTable(title, tableLines);

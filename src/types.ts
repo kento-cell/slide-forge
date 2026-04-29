@@ -32,7 +32,9 @@ export type SlideKind =
   | "summary"
   | "section"
   | "stat"
-  | "image";
+  | "image"
+  | "process"
+  | "cards";
 
 export interface CoverSlide {
   kind: "cover";
@@ -94,6 +96,19 @@ export interface ImageSlide {
   width: number;
   height: number;
 }
+export interface ProcessSlide {
+  kind: "process";
+  title: string;
+  /** Ordered steps shown as arrow-connected boxes (3-5 items). */
+  steps: { label: string; detail?: string }[];
+}
+export interface CardsSlide {
+  kind: "cards";
+  title: string;
+  /** Side-by-side cards (3 items). Each card is a colored block
+   *  with a heading and a short description. */
+  cards: { heading: string; body: string }[];
+}
 
 export type Slide =
   | CoverSlide
@@ -104,7 +119,9 @@ export type Slide =
   | SummarySlide
   | SectionSlide
   | StatSlide
-  | ImageSlide;
+  | ImageSlide
+  | ProcessSlide
+  | CardsSlide;
 
 export interface Deck {
   title: string;
