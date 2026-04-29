@@ -4,6 +4,7 @@ import { Wizard } from "./components/Wizard";
 import { Header } from "./components/Header";
 import { Main } from "./components/Main";
 import { Result } from "./components/Result";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { detectOllama } from "./providers/ollama";
 
 // Models the app generates well with, in preference order.
@@ -81,6 +82,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <UpdateBanner />
       {screen !== "wizard" && <Header />}
       <main className="flex-1">
         {screen === "wizard" && <Wizard />}
