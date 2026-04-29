@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useAppStore } from "../store/useAppStore";
-import { DEFAULT_PROMPT } from "../samples/defaultPrompt";
+import { DEFAULT_PROMPT, OFFLINE_SAMPLE_MARKDOWN } from "../samples/defaultPrompt";
 import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
@@ -23,8 +23,13 @@ export function Main() {
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const displayValue = promptTouched ? prompt : DEFAULT_PROMPT;
   const isOffline = settings.provider.id === "offline";
+  // Offline mode parses the textarea as Markdown directly, so the
+  // sample shown when the user hasn't typed anything must be real
+  // Markdown (with # / ## headers), not the AI task prompt that has
+  // headers documented inside a code-fence-like description.
+  const sampleForCurrentMode = isOffline ? OFFLINE_SAMPLE_MARKDOWN : DEFAULT_PROMPT;
+  const displayValue = promptTouched ? prompt : sampleForCurrentMode;
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -44,7 +49,7 @@ export function Main() {
 
   async function handleGenerate() {
     setError(null);
-    const userInput = (promptTouched ? prompt : DEFAULT_PROMPT).trim();
+    const userInput = (promptTouched ? prompt : sampleForCurrentMode).trim();
     if (!userInput) {
       setError("プロンプトを入力してください");
       return;
