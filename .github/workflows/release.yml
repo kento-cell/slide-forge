@@ -54,7 +54,8 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
       - name: Install npm deps
-        run: npm ci
+        # See ci.yml for why npm install is preferred over npm ci.
+        run: npm install --no-audit --no-fund
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0

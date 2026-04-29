@@ -16,7 +16,13 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-      - run: npm ci
+      # `npm ci` is too strict for our lock file: rolldown ships
+      # platform-specific optional native bindings, and a Windows-
+      # generated lock will reference @emnapi/core for the wasm32-wasi
+      # fallback without resolving its package entry. Linux has its own
+      # native binding in the lock so the build still succeeds; we just
+      # need looser install behavior.
+      - run: npm install --no-audit --no-fund
       - name: Type check
         run: npx tsc -b
       - name: Build
