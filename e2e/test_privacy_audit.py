@@ -53,6 +53,11 @@ ALLOWED_DOMAINS = {
     # Tauri runtime and NEVER reaches a real network. Required in
     # CSP for IPC to work at all.
     "ipc.localhost",
+    # Tauri 2 webview origin on Windows (`tauri://localhost` on
+    # mac/Linux, `http://tauri.localhost` on Windows). Mentioned in
+    # ollama.rs as documentation of why we route through Rust;
+    # never an actual outbound request target.
+    "tauri.localhost",
     # Tauri docs URL appearing only in vite.config.ts as a
     # comment-style reference. Not a runtime call.
     "v2.tauri.app",

@@ -1,3 +1,4 @@
+mod ollama;
 mod secrets;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -10,6 +11,9 @@ pub fn run() {
             secrets::set_api_key,
             secrets::get_api_key,
             secrets::delete_api_key,
+            ollama::ollama_detect,
+            ollama::ollama_chat,
+            ollama::ollama_pull,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
