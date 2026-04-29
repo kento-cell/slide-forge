@@ -7,6 +7,7 @@ import { Result } from "./components/Result";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { detectOllama } from "./providers/ollama";
 import { migrateLegacyApiKeys } from "./lib/secrets";
+import { openExternalUrl } from "./lib/openUrl";
 
 // Models the app generates well with, in preference order.
 // First match against the user's installed list wins.
@@ -138,14 +139,13 @@ export default function App() {
       </main>
       <footer className="border-t border-slate-200 px-6 py-3 text-center text-xs text-slate-500 dark:border-slate-800">
         Slide Forge — open source · MIT License ·{" "}
-        <a
-          href="https://github.com/kento-cell/slide-forge"
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={() => openExternalUrl("https://github.com/kento-cell/slide-forge")}
           className="underline hover:text-navy-700"
         >
           GitHub
-        </a>
+        </button>
       </footer>
     </div>
   );
