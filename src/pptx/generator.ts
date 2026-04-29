@@ -52,6 +52,10 @@ function renderSlide(
       return renderStat(s, slide, theme, page, total);
     case "image":
       return renderImage(s, slide, theme, page, total);
+    case "process":
+      return renderProcess(s, slide, theme, page, total);
+    case "cards":
+      return renderCards(s, slide, theme, page, total);
   }
 }
 
@@ -72,6 +76,29 @@ function chromeAccent(s: Slide_, t: Theme) {
     fill: { color: t.colors.primary },
     line: { color: t.colors.primary, width: 0 },
   });
+  // Decorative corner pattern — three small squares stacked at the
+  // top-right. Pure visual texture, no information content.
+  for (let i = 0; i < 3; i++) {
+    s.addShape("rect", {
+      x: W - 0.55 - i * 0.2,
+      y: 0.35,
+      w: 0.13,
+      h: 0.13,
+      fill: { color: i === 0 ? t.colors.accent : t.colors.primary },
+      line: { color: "FFFFFF", width: 0 },
+    });
+  }
+  // Bottom-left subtle dot trio — mirrors the corner pattern.
+  for (let i = 0; i < 3; i++) {
+    s.addShape("ellipse", {
+      x: 0.45 + i * 0.18,
+      y: H - 0.85,
+      w: 0.08,
+      h: 0.08,
+      fill: { color: t.colors.primary },
+      line: { color: t.colors.primary, width: 0 },
+    });
+  }
 }
 
 function chromeFooter(s: Slide_, page: number, total: number, t: Theme) {
@@ -757,4 +784,216 @@ function fitInside(
     w,
     h,
   };
+}
+
+// ---------------------------------------------------------------------
+// Process — N steps as connected boxes with arrows between them.
+// ---------------------------------------------------------------------
+
+function renderProcess(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "process" }>,
+  t: Theme,
+  page: number,
+  total: number,
+) {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+  const steps = slide.steps.slice(0, 5);
+  const n = steps.length;
+  const margin = 0.5;
+  const arrowGap = 0.3;
+  const totalArrowsWidth = (n - 1) * arrowGap;
+  const boxW = (W - margin * 2 - totalArrowsWidth) / n;
+  const boxH = 3.0;
+  const startY = 2.2;
+
+  steps.forEach((step, i) => {
+    const x = margin + i * (boxW + arrowGap);
+    // Step card
+    s.addShape("roundRect", {
+      x,
+      y: startY,
+      w: boxW,
+      h: boxH,
+      fill: { color: t.colors.bg },
+      line: { color: t.colors.primary, width: 1.5 },
+      rectRadius: 0.15,
+    });
+    // Numbered badge at top of card
+    s.addShape("ellipse", {
+      x: x + boxW / 2 - 0.35,
+      y: startY - 0.35,
+      w: 0.7,
+      h: 0.7,
+      fill: { color: t.colors.primary },
+      line: { color: "FFFFFF", width: 2 },
+    });
+    s.addText(String(i + 1).padStart(2, "0"), {
+      x: x + boxW / 2 - 0.35,
+      y: startY - 0.35,
+      w: 0.7,
+      h: 0.7,
+      fontFace: t.fontHead,
+      fontSize: 18,
+      bold: true,
+      color: "FFFFFF",
+      align: "center",
+      valign: "middle",
+    });
+    // Step label
+    s.addText(step.label, {
+      x: x + 0.15,
+      y: startY + 0.6,
+      w: boxW - 0.3,
+      h: 0.9,
+      fontFace: t.fontHead,
+      fontSize: 16,
+      bold: true,
+      color: t.colors.primary,
+      align: "center",
+      valign: "middle",
+    });
+    if (step.detail) {
+      s.addText(step.detail, {
+        x: x + 0.15,
+        y: startY + 1.55,
+        w: boxW - 0.3,
+        h: boxH - 1.7,
+        fontFace: t.fontBody,
+        fontSize: 12,
+        color: t.colors.textMuted,
+        align: "center",
+        valign: "top",
+      });
+    }
+    // Arrow to next step (right-pointing chevron)
+    if (i < n - 1) {
+      const ax = x + boxW + 0.02;
+      const ay = startY + boxH / 2 - 0.2;
+      s.addShape("rightArrow", {
+        x: ax,
+        y: ay,
+        w: arrowGap - 0.04,
+        h: 0.4,
+        fill: { color: t.colors.accent },
+        line: { color: t.colors.accent, width: 0 },
+      });
+    }
+  });
+
+  chromeFooter(s, page, total, t);
+}
+
+// ---------------------------------------------------------------------
+// Cards — 3 colored cards in a row with heading + body text.
+// ---------------------------------------------------------------------
+
+function renderCards(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "cards" }>,
+  t: Theme,
+  page: number,
+  total: number,
+) {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+  const cards = slide.cards.slice(0, 3);
+  const n = cards.length;
+  const margin = 0.6;
+  const cardGap = 0.35;
+  const cardW = (W - margin * 2 - cardGap * (n - 1)) / n;
+  const cardH = 4.5;
+  const startY = 1.8;
+
+  // Color palette across cards: primary / accent / good (varied).
+  const palette = [t.colors.primary, t.colors.accent, t.colors.good];
+
+  cards.forEach((card, i) => {
+    const x = margin + i * (cardW + cardGap);
+    const accent = palette[i % palette.length];
+    // Card body (white with border)
+    s.addShape("roundRect", {
+      x,
+      y: startY,
+      w: cardW,
+      h: cardH,
+      fill: { color: t.colors.bg },
+      line: { color: t.colors.border, width: 1 },
+      rectRadius: 0.18,
+    });
+    // Top color band on the card
+    s.addShape("roundRect", {
+      x,
+      y: startY,
+      w: cardW,
+      h: 1.0,
+      fill: { color: accent },
+      line: { color: accent, width: 0 },
+      rectRadius: 0.18,
+    });
+    // Square the bottom of the band so it abuts the body
+    s.addShape("rect", {
+      x,
+      y: startY + 0.8,
+      w: cardW,
+      h: 0.2,
+      fill: { color: accent },
+      line: { color: accent, width: 0 },
+    });
+    // Decorative diamond shape in the band
+    s.addShape("diamond", {
+      x: x + cardW - 0.55,
+      y: startY + 0.18,
+      w: 0.4,
+      h: 0.6,
+      fill: { color: "FFFFFF" },
+      line: { color: "FFFFFF", width: 0 },
+    });
+    // Card index number on the band
+    s.addText(String(i + 1).padStart(2, "0"), {
+      x: x + 0.25,
+      y: startY,
+      w: 1.5,
+      h: 1.0,
+      fontFace: t.fontHead,
+      fontSize: 32,
+      bold: true,
+      color: "FFFFFF",
+      valign: "middle",
+    });
+    // Heading
+    s.addText(card.heading, {
+      x: x + 0.3,
+      y: startY + 1.2,
+      w: cardW - 0.6,
+      h: 0.9,
+      fontFace: t.fontHead,
+      fontSize: 18,
+      bold: true,
+      color: t.colors.primary,
+      valign: "top",
+    });
+    // Divider line under heading
+    s.addShape("line", {
+      x: x + 0.3,
+      y: startY + 2.05,
+      w: 0.8,
+      h: 0,
+      line: { color: accent, width: 2 },
+    });
+    // Body text
+    s.addText(card.body, {
+      x: x + 0.3,
+      y: startY + 2.2,
+      w: cardW - 0.6,
+      h: cardH - 2.5,
+      fontFace: t.fontBody,
+      fontSize: 13,
+      color: t.colors.text,
+      valign: "top",
+    });
+  });
+
+  chromeFooter(s, page, total, t);
 }

@@ -74,6 +74,8 @@ def main() -> int:
 
     section_hits = len(re.findall(r"^##\s+SECTION\s+\d", md, re.MULTILINE))
     stat_hits = len(re.findall(r"^##\s+STAT\s+", md, re.MULTILINE))
+    flow_hits = len(re.findall(r"^##\s+FLOW(\s|$)", md, re.MULTILINE))
+    cards_hits = len(re.findall(r"^##\s+CARDS(\s|$)", md, re.MULTILINE))
     table_hits = len(re.findall(r"^\s*\|.*\|.*$", md, re.MULTILINE))
     # Detect blockquote body lines that are NOT cover meta lines
     # (cover メタは "> サブタイトル:" / "> タグライン:")
@@ -95,6 +97,8 @@ def main() -> int:
     checks = [
         ("SECTION divider slides", section_hits, 1),
         ("STAT highlight slides", stat_hits, 1),
+        ("FLOW process slides", flow_hits, 1),
+        ("CARDS grid slides", cards_hits, 1),
         ("Markdown table rows", table_hits, 2),
         ("blockquote (non-cover) lines", blockquote_hits, 1),
         ("plain bullet lines", bullet_hits, 3),

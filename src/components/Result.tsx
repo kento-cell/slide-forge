@@ -342,5 +342,38 @@ function renderThumbBody(slide: Slide) {
           )}
         </div>
       );
+    case "process":
+      return (
+        <div className="flex h-full items-center justify-center gap-1">
+          {slide.steps.slice(0, 5).map((step, i) => (
+            <div key={i} className="flex items-center gap-0.5">
+              <div className="flex flex-col items-center rounded border border-current px-1 py-0.5">
+                <div className="text-[7px] font-bold">{String(i + 1).padStart(2, "0")}</div>
+                <div className="max-w-[3em] truncate text-[8px]">{step.label}</div>
+              </div>
+              {i < slide.steps.length - 1 && i < 4 && (
+                <span className="text-[10px]">▶</span>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    case "cards":
+      return (
+        <div className="grid h-full grid-cols-3 gap-1">
+          {slide.cards.slice(0, 3).map((card, i) => (
+            <div
+              key={i}
+              className="flex flex-col rounded border border-current p-1"
+            >
+              <div className="text-[7px] font-bold">
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              <div className="truncate text-[9px] font-bold">{card.heading}</div>
+              <div className="truncate text-[7px] opacity-70">{card.body}</div>
+            </div>
+          ))}
+        </div>
+      );
   }
 }

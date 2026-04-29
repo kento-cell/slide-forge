@@ -44,7 +44,15 @@ export default function App() {
   // user-triggered resetSetup() (⚙ button or "← モード選択に戻る") sends
   // them to the wizard instead of being bounced back to Main by an
   // immediate re-detect of their already-running Ollama.
-  const [autoDetectAttempted, setAutoDetectAttempted] = useState(false);
+  //
+  // Initial value: if the user has setupDone=true, they already chose
+  // a provider in a prior session — auto-detect is OBSOLETE for them
+  // and must stay disabled even if they later reset. Without this
+  // initializer, hitting ⚙ on a returning user's app would re-trigger
+  // the probe and bounce them straight back to Main.
+  const [autoDetectAttempted, setAutoDetectAttempted] = useState(
+    settings.setupDone,
+  );
   const [detecting, setDetecting] = useState(!settings.setupDone);
 
   // One-shot migration on app start: lift any plain-text apiKey that
