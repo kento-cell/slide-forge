@@ -38,6 +38,12 @@ export default function App() {
   const settings = useAppStore((s) => s.settings);
   const setProvider = useAppStore((s) => s.setProvider);
   const finishSetup = useAppStore((s) => s.finishSetup);
+  // Auto-detect runs once per app session. After it completes (success
+  // or fail), `autoDetectAttempted` flips true and never resets — so a
+  // user-triggered resetSetup() (⚙ button or "← モード選択に戻る") sends
+  // them to the wizard instead of being bounced back to Main by an
+  // immediate re-detect of their already-running Ollama.
+  const [autoDetectAttempted, setAutoDetectAttempted] = useState(false);
   const [detecting, setDetecting] = useState(!settings.setupDone);
 
   // One-shot migration on app start: lift any plain-text apiKey that
@@ -77,18 +83,13 @@ export default function App() {
   }, [setProvider]);
 
   useEffect(() => {
-    if (settings.setupDone) {
-      // Initial state already false when mounted with setupDone=true,
-      // so no setState needed here. Skipping the early-return setState
-      // keeps react-hooks/set-state-in-effect happy.
-      return;
-    }
-    // On reset (setupDone went true→false) the loader must come back.
-    // This is a legitimate sync setState before the async probe — the
-    // alternative (deriving via probeId/completedId pair) is harder to
-    // reason about than a single boolean.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDetecting(true);
+    // Already set up — nothing to do.
+    if (settings.setupDone) return;
+    // After the first attempt this effect must NOT re-run the probe.
+    // Otherwise hitting ⚙ → resetSetup would immediately re-detect
+    // Ollama and bounce the user back to Main, defeating the wizard.
+    if (autoDetectAttempted) return;
+
     let cancelled = false;
     (async () => {
       try {
@@ -102,13 +103,18 @@ export default function App() {
       } catch {
         // fall through to wizard
       } finally {
-        if (!cancelled) setDetecting(false);
+        if (!cancelled) {
+          // Both setState calls happen inside an async callback (after
+          // await) — react-hooks/set-state-in-effect tolerates that.
+          setDetecting(false);
+          setAutoDetectAttempted(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [settings.setupDone, setProvider, finishSetup]);
+  }, [settings.setupDone, autoDetectAttempted, setProvider, finishSetup]);
 
   if (detecting) {
     return (

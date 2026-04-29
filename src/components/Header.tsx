@@ -73,7 +73,7 @@ export function Header() {
           <button
             type="button"
             className="btn-ghost px-2 py-1 text-base"
-            title="再セットアップ"
+            title="モード選択に戻る"
             onClick={resetSetup}
           >
             ⚙
