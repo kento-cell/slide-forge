@@ -24,11 +24,12 @@ export async function generatePptx(deck: Deck, themeId: ThemeId): Promise<Blob> 
 }
 
 type Slide_ = NonNullable<ReturnType<PptxGenJS["addSlide"]>>;
+type Theme = (typeof THEMES)[ThemeId];
 
 function renderSlide(
   s: Slide_,
   slide: Slide,
-  theme: ReturnType<typeof getTheme>,
+  theme: Theme,
   page: number,
   total: number,
 ) {
@@ -48,11 +49,7 @@ function renderSlide(
   }
 }
 
-function getTheme(id: ThemeId) {
-  return THEMES[id];
-}
-
-function actionTitle(s: Slide_, title: string, t: ReturnType<typeof getTheme>) {
+function actionTitle(s: Slide_, title: string, t: Theme) {
   s.addText(title, {
     x: 0.5,
     y: 0.3,
@@ -72,7 +69,7 @@ function actionTitle(s: Slide_, title: string, t: ReturnType<typeof getTheme>) {
   });
 }
 
-function pageNo(s: Slide_, p: number, total: number, t: ReturnType<typeof getTheme>) {
+function pageNo(s: Slide_, p: number, total: number, t: Theme) {
   s.addText(`${p} / ${total}`, {
     x: W - 1.4,
     y: H - 0.45,
@@ -85,7 +82,7 @@ function pageNo(s: Slide_, p: number, total: number, t: ReturnType<typeof getThe
   });
 }
 
-function renderCover(s: Slide_, slide: Extract<Slide, { kind: "cover" }>, t: ReturnType<typeof getTheme>) {
+function renderCover(s: Slide_, slide: Extract<Slide, { kind: "cover" }>, t: Theme) {
   s.background = { color: t.colors.primaryDark };
   s.addShape("ellipse", {
     x: W - 2.5,
@@ -150,7 +147,7 @@ function renderCover(s: Slide_, slide: Extract<Slide, { kind: "cover" }>, t: Ret
 function renderBullets(
   s: Slide_,
   slide: Extract<Slide, { kind: "bullets" }>,
-  t: ReturnType<typeof getTheme>,
+  t: Theme,
   page: number,
   total: number,
 ) {
@@ -185,7 +182,7 @@ function renderBullets(
 function renderTwoColumn(
   s: Slide_,
   slide: Extract<Slide, { kind: "two-column" }>,
-  t: ReturnType<typeof getTheme>,
+  t: Theme,
   page: number,
   total: number,
 ) {
@@ -235,7 +232,7 @@ function renderTwoColumn(
 function renderTable(
   s: Slide_,
   slide: Extract<Slide, { kind: "table" }>,
-  t: ReturnType<typeof getTheme>,
+  t: Theme,
   page: number,
   total: number,
 ) {
@@ -272,7 +269,7 @@ function renderTable(
 function renderQuote(
   s: Slide_,
   slide: Extract<Slide, { kind: "quote" }>,
-  t: ReturnType<typeof getTheme>,
+  t: Theme,
   page: number,
   total: number,
 ) {
@@ -313,7 +310,7 @@ function renderQuote(
 function renderSummary(
   s: Slide_,
   slide: Extract<Slide, { kind: "summary" }>,
-  t: ReturnType<typeof getTheme>,
+  t: Theme,
   page: number,
   total: number,
 ) {

@@ -68,7 +68,7 @@ function linesToSlide(title: string, lines: string[]): Slide {
   }
   const items = lines
     .map((l) => l.trim())
-    .filter((l) => /^[-*•]\s+/.test(l) || /^[✅🔜⏳🎯⭐]/.test(l))
+    .filter((l) => /^[-*•]\s+/.test(l) || /^[✅🔜⏳🎯⭐]/u.test(l))
     .map((l) => l.replace(/^[-*•]\s+/, ""));
   if (items.length === 0) {
     return {

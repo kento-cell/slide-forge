@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "../store/useAppStore";
-import { generatePptx } from "../pptx/generator";
 import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
@@ -22,6 +21,8 @@ export function Result() {
   const rawMarkdown = useAppStore((s) => s.rawMarkdown);
   const [showMd, setShowMd] = useState(false);
   const [downloadCount, setDownloadCount] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const REGEN_TIMEOUT_MS = 5 * 60 * 1000;
 
   const theme = useMemo(() => THEMES[settings.theme], [settings.theme]);
 
@@ -35,6 +36,11 @@ export function Result() {
     setError(null);
     try {
       if (!deck) return;
+      // Lazy-load the PPTX generator (and the heavyweight pptxgenjs
+      // dependency it pulls in) only when the user actually clicks
+      // download — keeps the initial bundle under the Vite 500 KB
+      // warning threshold.
+      const { generatePptx } = await import("../pptx/generator");
       const blob = await generatePptx(deck, settings.theme);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -51,6 +57,13 @@ export function Result() {
     }
   }
 
+  function handleCancelRegen() {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }
+
   async function handleRegenerate() {
     if (settings.provider.id === "offline") {
       const text = (promptTouched ? prompt : OFFLINE_SAMPLE_MARKDOWN).trim();
@@ -58,11 +71,24 @@ export function Result() {
       setDeck(next, text);
       return;
     }
+
+    handleCancelRegen();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeoutId = window.setTimeout(() => {
+      controller.abort(new DOMException("timeout", "TimeoutError"));
+    }, REGEN_TIMEOUT_MS);
+
     setError(null);
     setGenerating(true);
     try {
       const text = (promptTouched ? prompt : DEFAULT_PROMPT).trim();
-      const md = await callLLM(settings.provider, SYSTEM_PROMPT, buildUserPrompt(text));
+      const md = await callLLM(
+        settings.provider,
+        SYSTEM_PROMPT,
+        buildUserPrompt(text),
+        controller.signal,
+      );
       const cleaned = md
         .replace(/^\s*```(?:markdown|md)?\s*/i, "")
         .replace(/```\s*$/i, "")
@@ -71,8 +97,21 @@ export function Result() {
       if (next.slides.length === 0) throw new Error("スライドを抽出できませんでした");
       setDeck(next, cleaned);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "再生成に失敗しました");
+      if (controller.signal.aborted) {
+        const reason = controller.signal.reason;
+        if (reason instanceof DOMException && reason.name === "TimeoutError") {
+          setError(
+            `再生成が ${REGEN_TIMEOUT_MS / 60000} 分以内に完了しませんでした。`,
+          );
+        } else {
+          setError("キャンセルしました");
+        }
+      } else {
+        setError(e instanceof Error ? e.message : "再生成に失敗しました");
+      }
     } finally {
+      window.clearTimeout(timeoutId);
+      if (abortRef.current === controller) abortRef.current = null;
       setGenerating(false);
     }
   }
@@ -97,13 +136,21 @@ export function Result() {
           <button className="btn-outline" onClick={() => setShowMd((v) => !v)}>
             {showMd ? "プレビュー" : "Markdown を見る"}
           </button>
-          <button
-            className="btn-outline"
-            onClick={handleRegenerate}
-            disabled={generating}
-          >
-            {generating ? "再生成中…" : "♻ 再生成"}
-          </button>
+          {generating ? (
+            <button
+              className="btn-outline"
+              onClick={handleCancelRegen}
+            >
+              ⏹ キャンセル
+            </button>
+          ) : (
+            <button
+              className="btn-outline"
+              onClick={handleRegenerate}
+            >
+              ♻ 再生成
+            </button>
+          )}
           <button className="btn-primary" onClick={handleDownload}>
             ⬇ PPTX をダウンロード
           </button>

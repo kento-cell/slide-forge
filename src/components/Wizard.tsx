@@ -150,9 +150,13 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
   const provider = useMemo(() => getProvider(selected), [selected]);
 
   useEffect(() => {
+    // Reset transient form state when the user switches provider tabs.
+    // These are local UI states that don't make sense to carry over.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setModel(provider.defaultModel ?? "");
     setTestResult(null);
     setErrMsg(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [provider]);
 
   async function runTest() {
@@ -296,8 +300,22 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
     setInstalledModels(r.models);
   }
 
+  // Probe Ollama on first mount of the local stage. Inlined as an
+  // async IIFE so the setStates only fire after `await` (i.e., not
+  // synchronously inside the effect body) — that's the shape
+  // react-hooks/set-state-in-effect tolerates.
   useEffect(() => {
-    refresh();
+    let cancelled = false;
+    (async () => {
+      const r = await detectOllama();
+      if (cancelled) return;
+      setInstalled(r.installed);
+      setVersion(r.version ?? null);
+      setInstalledModels(r.models);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function startPull() {
