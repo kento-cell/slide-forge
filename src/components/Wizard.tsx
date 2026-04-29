@@ -4,6 +4,7 @@ import { PROVIDERS, getProvider, pingProvider } from "../providers";
 import { detectOllama, pullOllamaModel } from "../providers/ollama";
 import { saveApiKey } from "../lib/secrets";
 import { openExternalUrl } from "../lib/openUrl";
+import { BackButton } from "./BackButton";
 import type { ProviderId } from "../types";
 
 type Stage = "select" | "cloud" | "local";
@@ -188,9 +189,7 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <button onClick={onBack} className="mb-4 text-sm text-slate-500 hover:underline">
-        ← 戻る
-      </button>
+      <BackButton onClick={onBack} label="モード選択に戻る" topNav />
       <h2 className="mb-1 text-2xl font-head font-bold">☁ クラウド AI セットアップ</h2>
       <p className="mb-6 text-sm text-slate-500">
         無料枠が大きい <strong>Gemini</strong> または <strong>Groq</strong> がおすすめ。
@@ -367,9 +366,7 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <button onClick={onBack} className="mb-4 text-sm text-slate-500 hover:underline">
-        ← 戻る
-      </button>
+      <BackButton onClick={onBack} label="モード選択に戻る" topNav />
       <h2 className="mb-1 text-2xl font-head font-bold">💻 ローカル AI セットアップ (Ollama)</h2>
       <p className="mb-6 text-sm text-slate-500">
         PC 内で完結。完全無料、機密データも外部に出ません。
@@ -407,11 +404,30 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
           disabled={!installed}
           onChange={(e) => setModel(e.target.value)}
         >
-          {provider.models?.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}{installedModels.includes(m.id) ? " ✓ 取得済" : ""}
-            </option>
-          ))}
+          <optgroup label="推奨モデル">
+            {provider.models?.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}{installedModels.includes(m.id) ? " ✓ 取得済" : ""}
+              </option>
+            ))}
+          </optgroup>
+          {/* Show every Ollama-installed model, even ones the wizard
+              doesn't list as recommended. Users who pulled models on
+              their own (qwen3:32b / phi4 / 任意の派生 etc.) get to
+              pick them here without re-running the recommended-model
+              download flow. */}
+          {(() => {
+            const knownIds = new Set(provider.models?.map((m) => m.id) ?? []);
+            const extras = installedModels.filter((m) => !knownIds.has(m));
+            if (extras.length === 0) return null;
+            return (
+              <optgroup label="その他のインストール済モデル">
+                {extras.map((m) => (
+                  <option key={m} value={m}>{m} ✓ 取得済</option>
+                ))}
+              </optgroup>
+            );
+          })()}
         </select>
         <button
           className="btn-outline text-sm"

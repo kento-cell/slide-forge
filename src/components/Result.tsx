@@ -6,6 +6,7 @@ import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
 import { DEFAULT_PROMPT, OFFLINE_SAMPLE_MARKDOWN } from "../samples/defaultPrompt";
 import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
+import { BackButton } from "./BackButton";
 import type { Slide } from "../types";
 
 export function Result() {
@@ -122,12 +123,7 @@ export function Result() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <button
-            onClick={() => setScreen("main")}
-            className="mb-2 text-sm text-slate-500 hover:underline"
-          >
-            ← 編集に戻る
-          </button>
+          <BackButton onClick={() => setScreen("main")} label="編集に戻る" topNav />
           <h1 className="font-head text-2xl font-bold">{deck.title}</h1>
           <p className="text-sm text-slate-500">
             {deck.slides.length} 枚 · テーマ: {theme.label}
