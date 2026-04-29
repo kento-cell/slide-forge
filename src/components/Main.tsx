@@ -6,6 +6,7 @@ import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
 import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
+import { BackButton } from "./BackButton";
 import type { ThemeId } from "../types";
 
 export function Main() {
@@ -129,13 +130,7 @@ export function Main() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6">
-        <button
-          type="button"
-          onClick={resetSetup}
-          className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:border-navy-400 hover:bg-navy-50 hover:text-navy-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-navy-500 dark:hover:bg-slate-800"
-        >
-          ← モード選択に戻る
-        </button>
+        <BackButton onClick={resetSetup} label="モード選択に戻る" topNav />
         <h1 className="font-head text-2xl font-bold">プロンプトを書いて [生成]</h1>
         <p className="text-sm text-slate-500">
           {isOffline
