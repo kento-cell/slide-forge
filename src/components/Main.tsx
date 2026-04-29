@@ -5,6 +5,7 @@ import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
+import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
 import type { ThemeId } from "../types";
 
 export function Main() {
@@ -24,6 +25,7 @@ export function Main() {
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const elapsedSec = useElapsedSec(generating);
 
   const isOffline = settings.provider.id === "offline";
   // Offline mode parses the textarea as Markdown directly, so the
@@ -247,7 +249,14 @@ export function Main() {
             onClick={handleGenerate}
             disabled={generating}
           >
-            {generating ? "生成中…" : "▶ 生成"}
+            {generating ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                生成中… {formatElapsed(elapsedSec)}
+              </span>
+            ) : (
+              "▶ 生成"
+            )}
           </button>
         </div>
       </div>

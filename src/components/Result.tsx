@@ -5,6 +5,7 @@ import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
 import { DEFAULT_PROMPT, OFFLINE_SAMPLE_MARKDOWN } from "../samples/defaultPrompt";
+import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
 import type { Slide } from "../types";
 
 export function Result() {
@@ -22,6 +23,7 @@ export function Result() {
   const [showMd, setShowMd] = useState(false);
   const [downloadCount, setDownloadCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const elapsedSec = useElapsedSec(generating);
   const REGEN_TIMEOUT_MS = 5 * 60 * 1000;
 
   const theme = useMemo(() => THEMES[settings.theme], [settings.theme]);
@@ -137,12 +139,18 @@ export function Result() {
             {showMd ? "プレビュー" : "Markdown を見る"}
           </button>
           {generating ? (
-            <button
-              className="btn-outline"
-              onClick={handleCancelRegen}
-            >
-              ⏹ キャンセル
-            </button>
+            <>
+              <span className="inline-flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300">
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-navy-700" />
+                再生成中… {formatElapsed(elapsedSec)}
+              </span>
+              <button
+                className="btn-outline"
+                onClick={handleCancelRegen}
+              >
+                ⏹ キャンセル
+              </button>
+            </>
           ) : (
             <button
               className="btn-outline"
