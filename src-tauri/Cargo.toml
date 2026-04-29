@@ -1,6 +1,6 @@
 [package]
 name = "slide-forge"
-version = "0.1.0"
+version = "0.2.1"
 description = "プロンプトから PowerPoint を生成するデスクトップアプリ"
 authors = ["Slide Forge Contributors"]
 edition = "2021"
@@ -31,6 +31,14 @@ keyring = { version = "3", features = [
     "linux-native",
     "sync-secret-service",
 ] }
+# HTTP client used by the Ollama bridge. We route every Ollama call
+# through Rust because the Tauri 2 webview runs at origin
+# `http://tauri.localhost` (Windows) / `tauri://localhost` (mac/Linux),
+# which Ollama's default CORS allowlist rejects. Doing the request in
+# Rust skips the CORS preflight entirely.
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+tokio = { version = "1", features = ["sync", "macros"] }
+futures-util = "0.3"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
