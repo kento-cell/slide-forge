@@ -26,7 +26,7 @@
 
 ## 何ができるか
 
-- **D&D 投入** — `.md` `.txt` を画面にドラッグ
+- **D&D 投入** — `.md` `.txt` と `.png` `.jpg` `.jpeg` `.webp` `.gif` を画面にドラッグ
 - **コピペ可能な薄字サンプル** — 編集してなければサンプル文がそのまま使われる (典型プロンプトを参考にして書ける)
 - **テーマ 3 種** — Navy / Light / Mono
 - **3 つの AI モード** — Cloud (Gemini/Groq/Claude/GPT) / Local (Ollama) / Offline (md→pptx)
@@ -82,7 +82,7 @@ npm run tauri:build
 | LLM プロバイダ | Google Gemini / Groq / Anthropic / OpenAI / Ollama (REST 直叩き) |
 | PPTX 生成 | [PptxGenJS](https://gitbrent.github.io/PptxGenJS/) v4 |
 | Markdown パース | 自作 (シンプルな AST 抽出) |
-| 永続化 | localStorage (将来 Tauri Keyring 移行) |
+| 永続化 | localStorage (設定) + OS Keychain / Credential Manager (API キー) |
 
 ## ディレクトリ構成
 
@@ -110,7 +110,7 @@ slide-forge/
    └ ✏ AI なし        (md→pptx 変換のみ。即動く)
 
 2. メイン画面
-   - 灰色サンプルプロンプトをそのまま生成 / 編集 / .md ドロップ
+   - 灰色サンプルプロンプトをそのまま生成 / 編集 / .md ドロップ / 画像ドロップ
    - テーマ選択 (Navy / Light / Mono)
    - [▶ 生成]
 
@@ -144,6 +144,6 @@ slide-forge/
 
 ## 注意
 
-- API キーはブラウザの localStorage に**平文**で保存されます (Tauri 化後に OS キーリングへ移行予定)
+- API キーはデスクトップ版では OS の認証情報ストアに保存されます。ブラウザ開発時はセッション中のみ保持します。
 - ブラウザから直接 API を叩く構成のため、**Anthropic API は Origin 制約あり**(`anthropic-dangerous-direct-browser-access` を付与)
 - Ollama はローカルで `localhost:11434` を起動している前提

@@ -327,5 +327,20 @@ function renderThumbBody(slide: Slide) {
           )}
         </div>
       );
+    case "image":
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-1">
+          <img
+            src={slide.dataUrl}
+            alt={slide.alt}
+            className="max-h-[90%] max-w-full rounded-sm object-contain"
+          />
+          {slide.caption && (
+            <div className="max-w-full truncate text-[8px] opacity-70">
+              {slide.caption}
+            </div>
+          )}
+        </div>
+      );
   }
 }
