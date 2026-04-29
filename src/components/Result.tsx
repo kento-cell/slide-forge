@@ -4,7 +4,7 @@ import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
-import { DEFAULT_PROMPT, OFFLINE_SAMPLE_MARKDOWN } from "../samples/defaultPrompt";
+import { DEFAULT_PROMPT } from "../samples/defaultPrompt";
 import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
 import { BackButton } from "./BackButton";
 import type { Slide } from "../types";
@@ -203,17 +203,22 @@ function SlideThumb({
 }) {
   const settings = useAppStore((s) => s.settings);
   const theme = THEMES[settings.theme];
-  const isCover = slide.kind === "cover";
+  // Cover and section dividers both render on the dark hero background
+  // in the PPTX output, so the thumbnail mirrors that.
+  const isHero = slide.kind === "cover" || slide.kind === "section";
+  // Stat slides have no title chrome — the value IS the title — so
+  // suppress the header band in the thumbnail too.
+  const showHeader = !isHero && slide.kind !== "stat";
   return (
     <div
       className="card aspect-[16/9] overflow-hidden p-3"
       style={{
-        background: isCover ? `#${theme.colors.primaryDark}` : `#${theme.colors.bg}`,
-        color: isCover ? "#FFFFFF" : `#${theme.colors.text}`,
+        background: isHero ? `#${theme.colors.primaryDark}` : `#${theme.colors.bg}`,
+        color: isHero ? "#FFFFFF" : `#${theme.colors.text}`,
       }}
     >
       <div className="flex h-full flex-col">
-        {!isCover && (
+        {showHeader && (
           <div
             className="border-b pb-1 text-[10px] font-bold uppercase tracking-wider"
             style={{
@@ -229,7 +234,7 @@ function SlideThumb({
         </div>
         <div
           className="text-right text-[9px]"
-          style={{ color: isCover ? "#EAF1FA" : `#${theme.colors.textMuted}` }}
+          style={{ color: isHero ? "#EAF1FA" : `#${theme.colors.textMuted}` }}
         >
           {index + 1} / {total}
         </div>
@@ -299,6 +304,27 @@ function renderThumbBody(slide: Slide) {
       return (
         <div className="flex h-full items-center text-[12px] italic">
           “{slide.quote}”
+        </div>
+      );
+    case "section":
+      return (
+        <div className="flex h-full flex-col justify-center">
+          <div className="text-[7px] font-bold opacity-70 tracking-widest">CHAPTER</div>
+          <div className="text-3xl font-extrabold leading-none">{slide.index}</div>
+          <div className="mt-1 text-[10px] font-bold">{slide.title}</div>
+          {slide.subtitle && (
+            <div className="mt-0.5 text-[8px] opacity-70">{slide.subtitle}</div>
+          )}
+        </div>
+      );
+    case "stat":
+      return (
+        <div className="flex h-full flex-col items-center justify-center">
+          <div className="text-3xl font-extrabold leading-none">{slide.value}</div>
+          <div className="mt-1 text-[10px] font-bold">{slide.label}</div>
+          {slide.detail && (
+            <div className="mt-0.5 text-[8px] opacity-70 truncate">{slide.detail}</div>
+          )}
         </div>
       );
   }

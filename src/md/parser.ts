@@ -51,6 +51,40 @@ export function parseMarkdown(md: string): Deck {
 }
 
 function linesToSlide(title: string, lines: string[]): Slide {
+  // SECTION 01 / Section 1 / 第1章 / 章 1 — chapter divider with a
+  // big rendered numeral. Caller writes ## SECTION 01: 章タイトル.
+  const sectionMatch = title.match(
+    /^(?:SECTION|Section|セクション|第)?\s*(\d{1,2})(?:章)?\s*[:：\-—]\s*(.+)$/,
+  );
+  if (sectionMatch && /^(SECTION|Section|セクション|第)/.test(title)) {
+    const idx = sectionMatch[1].padStart(2, "0");
+    const heading = sectionMatch[2].trim();
+    // Subtitle: first non-empty quoted line, e.g. "> 副題: ..."
+    const sub = lines
+      .map((l) => l.trim())
+      .find((l) => /^>/.test(l));
+    return {
+      kind: "section",
+      index: idx,
+      title: heading,
+      subtitle: sub ? sub.replace(/^>\s*/, "") : undefined,
+    };
+  }
+
+  // STAT 30%: KPI 改善 — single big-number callout. Format:
+  //   ## STAT 30%: 前年比成長率
+  // The body's first non-empty line becomes the optional detail.
+  const statMatch = title.match(/^STAT\s+(.+?)\s*[:：]\s*(.+)$/);
+  if (statMatch) {
+    const detail = lines.map((l) => l.trim()).find((l) => l.length > 0);
+    return {
+      kind: "stat",
+      value: statMatch[1].trim(),
+      label: statMatch[2].trim(),
+      detail,
+    };
+  }
+
   const tableLines = lines.filter((l) => l.trim().startsWith("|"));
   if (tableLines.length >= 2) {
     return parseTable(title, tableLines);
