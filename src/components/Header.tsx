@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useAppStore } from "../store/useAppStore";
 import { getProvider } from "../providers";
 import { deleteApiKey } from "../lib/secrets";
@@ -8,11 +7,6 @@ export function Header() {
   const setProvider = useAppStore((s) => s.setProvider);
   const resetSetup = useAppStore((s) => s.resetSetup);
   const provider = getProvider(settings.provider.id);
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
 
   const isCloud = provider.category === "cloud";
 
@@ -62,14 +56,6 @@ export function Header() {
               🗑
             </button>
           )}
-          <button
-            type="button"
-            className="btn-ghost px-2 py-1 text-base"
-            title="ダーク/ライト切替"
-            onClick={() => setDark((d) => !d)}
-          >
-            {dark ? "☀" : "🌙"}
-          </button>
           <button
             type="button"
             className="btn-ghost px-2 py-1 text-base"
