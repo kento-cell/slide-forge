@@ -67,11 +67,16 @@ export function Result() {
     }
   }
 
+  const isOffline = settings.provider.id === "offline";
+
   async function handleRegenerate() {
-    if (settings.provider.id === "offline") {
-      const text = (promptTouched ? prompt : OFFLINE_SAMPLE_MARKDOWN).trim();
-      const next = parseMarkdown(text);
-      setDeck(next, text);
+    if (isOffline) {
+      // Offline mode parses Markdown deterministically — clicking
+      // regenerate without editing the prompt would reproduce the
+      // SAME deck, leading users to think the button is broken.
+      // Send them back to Main so they edit before re-rendering.
+      setError("AI なしモードでは Markdown を編集してから再生成してください");
+      setScreen("main");
       return;
     }
 
@@ -151,6 +156,11 @@ export function Result() {
             <button
               className="btn-outline"
               onClick={handleRegenerate}
+              title={
+                isOffline
+                  ? "AI なしモードでは Markdown 編集後に反映されます"
+                  : "同じプロンプトで別のバリエーションを生成"
+              }
             >
               ♻ 再生成
             </button>
