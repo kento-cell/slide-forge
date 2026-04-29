@@ -45,6 +45,7 @@ npm run dev
 - **そのまま [▶ 生成]** — 灰色サンプル文がそのまま使われる (動作確認に最適)
 - **編集して [▶ 生成]** — あなたのプロンプトで生成
 - **`.md` `.txt` をドロップ** — ファイルから読み込み
+- **`.png` `.jpg` `.jpeg` `.webp` `.gif` をドロップ** — 安全検証後に画像スライドとして取り込み
 
 ## 4. 結果を DL
 
@@ -65,6 +66,7 @@ npm run dev
 
 ## 設定の保存場所
 
-ブラウザの localStorage (`slide-forge.settings.v1`)。
-- API キー: 平文で保存 (将来 Tauri Keyring へ)
+設定はブラウザの localStorage (`slide-forge.settings.v1`) に保存されます。
+- API キー: デスクトップ版は OS の認証情報ストアに保存
+- ブラウザ開発時の API キー: sessionStorage に保存され、タブを閉じると消える
 - 別ブラウザ / シークレットモードでは別設定として扱われる

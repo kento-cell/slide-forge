@@ -31,7 +31,8 @@ export type SlideKind =
   | "quote"
   | "summary"
   | "section"
-  | "stat";
+  | "stat"
+  | "image";
 
 export interface CoverSlide {
   kind: "cover";
@@ -83,6 +84,16 @@ export interface StatSlide {
   /** Optional supporting text below the caption. */
   detail?: string;
 }
+export interface ImageSlide {
+  kind: "image";
+  title: string;
+  /** Browser-normalized PNG data URL. Original metadata is stripped. */
+  dataUrl: string;
+  alt: string;
+  caption?: string;
+  width: number;
+  height: number;
+}
 
 export type Slide =
   | CoverSlide
@@ -92,7 +103,8 @@ export type Slide =
   | QuoteSlide
   | SummarySlide
   | SectionSlide
-  | StatSlide;
+  | StatSlide
+  | ImageSlide;
 
 export interface Deck {
   title: string;

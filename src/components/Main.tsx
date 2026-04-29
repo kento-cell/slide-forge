@@ -6,6 +6,13 @@ import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
 import { parseMarkdown } from "../md/parser";
 import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
+import {
+  ACCEPTED_TEXT_AND_IMAGE_FILES,
+  filesToImageSlides,
+  imageSlidesToMarkdown,
+  isSupportedImageFile,
+  isTextFile,
+} from "../lib/images";
 import { BackButton } from "./BackButton";
 import type { ThemeId } from "../types";
 
@@ -38,18 +45,65 @@ export function Main() {
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
-      const file = Array.from(files).find((f) =>
-        /\.(md|markdown|txt)$/i.test(f.name),
+      const incoming = Array.from(files);
+      const textFiles = incoming.filter(isTextFile);
+      const imageFiles = incoming.filter(isSupportedImageFile);
+      const unsupported = incoming.filter(
+        (file) => !isTextFile(file) && !isSupportedImageFile(file),
       );
-      if (!file) {
-        setError(".md / .markdown / .txt のいずれかを投入してください");
+
+      if (unsupported.length > 0) {
+        setError(
+          "対応ファイルは .md / .markdown / .txt / .png / .jpg / .jpeg / .webp / .gif です",
+        );
         return;
       }
-      const text = await file.text();
-      setPrompt(text, true);
-      setError(null);
+      if (textFiles.length > 1) {
+        setError("テキストファイルは一度に1つまで投入できます");
+        return;
+      }
+      if (textFiles.length === 0 && imageFiles.length === 0) {
+        setError("テキストまたは画像ファイルを投入してください");
+        return;
+      }
+
+      try {
+        const text = textFiles[0] ? await textFiles[0].text() : "";
+        if (imageFiles.length === 0) {
+          setPrompt(text, true);
+          setError(null);
+          return;
+        }
+
+        const imageSlides = await filesToImageSlides(imageFiles);
+        const parsed = text.trim() ? parseMarkdown(text) : null;
+        const hasParsedSlides = Boolean(parsed && parsed.slides.length > 0);
+        const title =
+          hasParsedSlides && parsed
+            ? parsed.title
+            : imageSlides.length === 1
+              ? imageSlides[0].title
+              : "画像スライド";
+        const deck = {
+          title,
+          slides: [
+            ...(hasParsedSlides && parsed ? parsed.slides : []),
+            ...imageSlides,
+          ],
+        };
+        const raw = [
+          hasParsedSlides ? text.trim() : `# ${title}`,
+          imageSlidesToMarkdown(imageSlides),
+        ].join("\n\n");
+        setPrompt(text, Boolean(text));
+        setDeck(deck, raw);
+        setScreen("result");
+        setError(null);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "ファイルの読み込みに失敗しました");
+      }
     },
-    [setPrompt, setError],
+    [setDeck, setError, setPrompt, setScreen],
   );
 
   // Cap any single LLM call. Cloud providers usually answer in <30s;
@@ -159,12 +213,13 @@ export function Main() {
         }}
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 text-xs text-slate-500 dark:border-slate-800">
-          <span>📁 .md / .txt をドラッグ&ドロップ もしくは下に直接入力</span>
+          <span>📁 .md / .txt / 画像をドラッグ&ドロップ もしくは下に直接入力</span>
           <div className="flex items-center gap-2">
             <input
               ref={fileRef}
               type="file"
-              accept=".md,.markdown,.txt,text/markdown,text/plain"
+              accept={ACCEPTED_TEXT_AND_IMAGE_FILES}
+              multiple
               className="hidden"
               onChange={(e) => e.target.files && handleFiles(e.target.files)}
             />

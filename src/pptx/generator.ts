@@ -50,6 +50,8 @@ function renderSlide(
       return renderSection(s, slide, theme, page, total);
     case "stat":
       return renderStat(s, slide, theme, page, total);
+    case "image":
+      return renderImage(s, slide, theme, page, total);
   }
 }
 
@@ -690,4 +692,69 @@ function renderStat(
     });
   }
   chromeFooter(s, page, total, t);
+}
+
+// ---------------------------------------------------------------------
+// Image — local user image, normalized by the browser before it reaches
+// this renderer. No external URLs are embedded in the PPTX.
+// ---------------------------------------------------------------------
+
+function renderImage(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "image" }>,
+  t: Theme,
+  page: number,
+  total: number,
+) {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+
+  const box = { x: 0.75, y: 1.45, w: W - 1.5, h: 4.95 };
+  s.addShape("roundRect", {
+    ...box,
+    fill: { color: t.colors.bgAlt },
+    line: { color: t.colors.border, width: 1 },
+    rectRadius: 0.12,
+  });
+
+  const placed = fitInside(slide.width, slide.height, box);
+  s.addImage({
+    data: slide.dataUrl,
+    x: placed.x,
+    y: placed.y,
+    w: placed.w,
+    h: placed.h,
+  });
+
+  if (slide.caption) {
+    s.addText(slide.caption, {
+      x: 0.8,
+      y: 6.52,
+      w: W - 1.6,
+      h: 0.32,
+      fontFace: t.fontBody,
+      fontSize: 10,
+      color: t.colors.textMuted,
+      align: "center",
+      valign: "middle",
+      fit: "shrink",
+    });
+  }
+  chromeFooter(s, page, total, t);
+}
+
+function fitInside(
+  imageW: number,
+  imageH: number,
+  box: { x: number; y: number; w: number; h: number },
+) {
+  const scale = Math.min(box.w / imageW, box.h / imageH);
+  const w = imageW * scale;
+  const h = imageH * scale;
+  return {
+    x: box.x + (box.w - w) / 2,
+    y: box.y + (box.h - h) / 2,
+    w,
+    h,
+  };
 }
