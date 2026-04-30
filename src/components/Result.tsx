@@ -157,11 +157,8 @@ export function Result() {
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-navy-700" />
                 再生成中… {formatElapsed(elapsedSec)}
               </span>
-              <button
-                className="btn-outline"
-                onClick={handleCancelRegen}
-              >
-                ⏹ キャンセル
+              <button className="btn-outline" onClick={handleCancelRegen}>
+                キャンセル
               </button>
             </>
           ) : (
@@ -174,11 +171,11 @@ export function Result() {
                   : "同じプロンプトで別のバリエーションを生成"
               }
             >
-              ♻ 再生成
+              再生成
             </button>
           )}
           <button className="btn-primary" onClick={handleDownload}>
-            ⬇ PPTX をダウンロード
+            PPTX をダウンロード
           </button>
         </div>
       </div>

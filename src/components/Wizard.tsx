@@ -42,100 +42,85 @@ function SelectStage({
   onSkip: () => void;
 }) {
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <h1 className="mb-2 text-3xl font-head font-bold text-navy-900 dark:text-white">
-        Slide Forge へようこそ
+    <div className="mx-auto max-w-4xl px-6 py-16">
+      <h1 className="mb-3 font-head text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
+        プロバイダを選択
       </h1>
-      <p className="mb-10 text-slate-600 dark:text-slate-400">
-        どの方法で AI を使うか選んでください。あとから設定で変更できます。
+      <p className="mb-12 text-sm text-slate-500 dark:text-slate-400">
+        どの方法でスライドを生成するか選んでください。後からヘッダーの「プロバイダ変更」で切り替えられます。
       </p>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 md:grid-cols-3 dark:border-slate-800 dark:bg-slate-800">
         <Choice
-          icon="☁"
-          title="クラウド AI"
-          subtitle="無料 API キーを 1 個取得"
-          stars={4}
-          time="約 1 分"
-          notes={["品質高い", "ネット必須", "Gemini 無料枠で実質 ¥0"]}
           accent="navy"
+          title="クラウド"
+          subtitle="API キーを 1 個取得"
+          time="約 1 分"
+          notes={["品質高い", "ネット必須", "Gemini 無料枠"]}
           onClick={onCloud}
         />
         <Choice
-          icon="💻"
-          title="ローカル AI"
-          subtitle="PC 内で完結 (Ollama)"
-          stars={3}
-          time="約 5〜10 分"
+          accent="emerald"
+          title="ローカル"
+          subtitle="Ollama を使用"
+          time="5〜10 分"
           notes={["完全無料", "オフライン可", "PC スペック依存"]}
-          accent="green"
           onClick={onLocal}
         />
         <Choice
-          icon="✏"
+          accent="slate"
           title="AI なし"
-          subtitle="Markdown を機械的に変換"
-          stars={2}
+          subtitle="Markdown を直接変換"
           time="0 秒"
-          notes={["設定不要", "シンプル機能のみ", "いつでも切替可"]}
-          accent="amber"
+          notes={["設定不要", "最低限の機能のみ"]}
           onClick={onSkip}
         />
       </div>
-      <p className="mt-8 text-center text-xs text-slate-500">
-        どれを選んでも、あとからメイン画面右上の <kbd className="rounded border px-1">⚙</kbd>{" "}
-        で再セットアップできます。
-      </p>
     </div>
   );
 }
 
 function Choice({
-  icon,
+  accent,
   title,
   subtitle,
-  stars,
   time,
   notes,
-  accent,
   onClick,
 }: {
-  icon: string;
+  accent: "navy" | "emerald" | "slate";
   title: string;
   subtitle: string;
-  stars: number;
   time: string;
   notes: string[];
-  accent: "navy" | "green" | "amber";
   onClick: () => void;
 }) {
-  const ring = {
-    navy: "hover:border-navy-700 hover:ring-navy-200",
-    green: "hover:border-emerald-600 hover:ring-emerald-100",
-    amber: "hover:border-amber-600 hover:ring-amber-100",
+  const accentBar = {
+    navy: "bg-navy-700",
+    emerald: "bg-emerald-600",
+    slate: "bg-slate-400",
   }[accent];
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`card group flex h-full flex-col items-stretch border-2 border-transparent p-6 text-left transition hover:shadow-lg hover:ring-4 ${ring}`}
+      className="group relative flex h-full flex-col items-stretch bg-white p-6 text-left transition hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900"
     >
-      <div className="mb-3 text-4xl">{icon}</div>
-      <div className="mb-1 font-head text-xl font-bold">{title}</div>
-      <div className="mb-4 text-sm text-slate-600 dark:text-slate-400">{subtitle}</div>
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="text-amber-500">{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>
-        <span className="text-slate-500">{time}</span>
+      <span className={`absolute left-0 top-0 h-full w-1 ${accentBar}`} />
+      <div className="mb-1 font-head text-lg font-semibold tracking-tight">{title}</div>
+      <div className="mb-6 text-xs text-slate-500 dark:text-slate-400">{subtitle}</div>
+      <div className="mb-4 text-[11px] uppercase tracking-wider text-slate-400">
+        {time}
       </div>
-      <ul className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-400">
+      <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
         {notes.map((n) => (
-          <li key={n} className="flex gap-2">
-            <span>·</span>
+          <li key={n} className="flex items-baseline gap-2">
+            <span className="text-slate-300">·</span>
             <span>{n}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-auto pt-6 text-right text-sm font-bold text-navy-700 group-hover:translate-x-1 transition">
-        選択 →
+      <div className="mt-auto pt-8 text-xs font-medium uppercase tracking-wider text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-slate-200">
+        Select
       </div>
     </button>
   );
