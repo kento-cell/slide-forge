@@ -175,7 +175,7 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <BackButton onClick={onBack} label="モード選択に戻る" topNav />
-      <h2 className="mb-1 text-2xl font-head font-bold">☁ クラウド AI セットアップ</h2>
+      <h2 className="mb-1 font-head text-xl font-semibold tracking-tight">クラウド AI セットアップ</h2>
       <p className="mb-6 text-sm text-slate-500">
         無料枠が大きい <strong>Gemini</strong> または <strong>Groq</strong> がおすすめ。
       </p>
@@ -261,7 +261,7 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
       <div className="mt-6 flex justify-end gap-3">
         <button className="btn-ghost" onClick={onBack}>キャンセル</button>
         <button className="btn-primary" disabled={!apiKey} onClick={handleSave}>
-          完了 → メイン画面へ
+          完了
         </button>
       </div>
     </div>
@@ -352,7 +352,7 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <BackButton onClick={onBack} label="モード選択に戻る" topNav />
-      <h2 className="mb-1 text-2xl font-head font-bold">💻 ローカル AI セットアップ (Ollama)</h2>
+      <h2 className="mb-1 font-head text-xl font-semibold tracking-tight">ローカル AI セットアップ (Ollama)</h2>
       <p className="mb-6 text-sm text-slate-500">
         PC 内で完結。完全無料、機密データも外部に出ません。
       </p>
@@ -458,7 +458,7 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
           disabled={!hasModel || testResult !== "ok"}
           onClick={handleSave}
         >
-          完了 → メイン画面へ
+          完了
         </button>
       </div>
     </div>
