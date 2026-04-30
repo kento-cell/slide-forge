@@ -189,12 +189,12 @@ function linesToSlideInner(title: string, lines: string[]): Slide {
   }
 
   // PROGRESS: percent + state cards. Format:
-  //   ## PROGRESS 50 開発進捗
+  //   ## PROGRESS 50 開発進捗   (or "PROGRESS 50%: 開発進捗")
   //   - Phase 1 認証 | done
-  //   - Phase 2 AI レビュー | done
   //   - Phase 5 ナレッジ | next | 来月着手
   //   - Phase 6 レポート | todo
-  const progressMatch = title.match(/^PROGRESS(?:\s+(\d{1,3}))?\s*(.*)$/);
+  // Allows optional "%" after the number and an optional ":/：" separator.
+  const progressMatch = title.match(/^PROGRESS(?:\s+(\d{1,3})%?)?\s*[:：]?\s*(.*)$/);
   if (progressMatch && /^PROGRESS/.test(title)) {
     const percent = parseInt(progressMatch[1] || "0", 10);
     const progressTitle = progressMatch[2]?.trim() || "進捗状況";
@@ -249,16 +249,37 @@ function linesToSlideInner(title: string, lines: string[]): Slide {
             .split("|")
             .map((c) => c.trim()),
         );
-      if (rows.length >= 2) {
+      if (rows.length >= 2 && rows[0].length >= 2) {
         const [header, ...body] = rows;
-        const labels = body.map((r) => r[0]);
-        const series = header.slice(1).map((seriesName, i) => ({
+        const labels = body.map((r) => r[0]).filter((l) => l && l.length > 0);
+        let series = header.slice(1).map((seriesName, i) => ({
           name: seriesName,
-          values: body.map((r) => parseFloat(r[i + 1]?.replace(/[^\d.\-]/g, "")) || 0),
+          values: body.map((r) => {
+            const cell = r[i + 1];
+            if (!cell) return 0;
+            const n = parseFloat(cell.replace(/[^\d.\-]/g, ""));
+            return Number.isFinite(n) ? n : 0;
+          }),
         }));
-        return { kind: "chart", title: chartTitle, chartType, labels, series };
+        // pie / doughnut accept only one series — drop the rest if the
+        // table accidentally has more.
+        if (chartType === "pie" || chartType === "doughnut") {
+          series = series.slice(0, 1);
+        }
+        // Validate: at least 1 label and 1 series with at least 1 value.
+        if (
+          labels.length >= 1 &&
+          series.length >= 1 &&
+          series[0].values.some((v) => v !== 0)
+        ) {
+          return { kind: "chart", title: chartTitle, chartType, labels, series };
+        }
+        // Fall through to table rendering if the chart data is unusable.
       }
     }
+    // CHART recognized but data invalid — fall back to table from the
+    // same markdown table lines.
+    if (tableLines.length >= 2) return parseTable(chartTitle, tableLines);
   }
 
   // MOCKUP: browser / pdf / phone window. Body lines render inside
@@ -352,8 +373,6 @@ function parseCompare(title: string, lines: string[]): Slide {
           rightHeading = heading;
           if (tone === "good" || tone === "良" || tone === "✓") rightTone = "good";
         }
-      } else {
-        // already at right; ignore further headings
       }
       continue;
     }
@@ -362,6 +381,19 @@ function parseCompare(title: string, lines: string[]): Slide {
       const text = itemMatch[1].trim();
       if (current === "left") leftItems.push(text);
       else rightItems.push(text);
+    }
+  }
+
+  // Fallback: if the LLM forgot the ### subheadings, both columns end
+  // up empty. Render as bullets so the user gets *something* readable
+  // rather than two empty cards.
+  if (leftItems.length === 0 && rightItems.length === 0) {
+    const items = lines
+      .map((l) => l.trim())
+      .filter((l) => /^[-*]\s+/.test(l))
+      .map((l) => l.replace(/^[-*]\s+/, ""));
+    if (items.length > 0) {
+      return { kind: "bullets", title, items };
     }
   }
 
