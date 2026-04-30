@@ -620,6 +620,7 @@ function renderQuote(
       color: t.colors.textMuted,
     });
   }
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
 
@@ -1395,12 +1396,17 @@ function renderLayered(
   chromeAccent(s, t);
   chromeTitle(s, slide.title, t);
 
-  const layers = slide.layers.slice(0, 5);
+  // Cap at 4 layers — beyond that text becomes unreadable in the
+  // 5.15-inch vertical band and the detail box collapses to negative
+  // height. If LLM emits 5+ layers, drop the tail.
+  const layers = slide.layers.slice(0, 4);
   const n = layers.length;
   const startY = 1.5;
   const endY = H - 0.85;
   const gap = 0.18;
   const layerH = (endY - startY - gap * (n - 1)) / n;
+  // Detail body height — guarded against tight 4-layer layouts.
+  const detailH = Math.max(0.18, layerH - 0.95);
   const palette = [t.colors.primary, t.colors.accent, t.colors.good, t.colors.primary, t.colors.accent];
 
   layers.forEach((layer, i) => {
@@ -1465,7 +1471,7 @@ function renderLayered(
         x: 1.7,
         y: y + 0.78,
         w: W - 2.2,
-        h: layerH - 0.95,
+        h: detailH,
         fontFace: t.fontBody,
         fontSize: 13,
         color: t.colors.text,
