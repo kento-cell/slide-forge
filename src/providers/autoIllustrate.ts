@@ -80,6 +80,15 @@ function buildPromptFor(slide: Slide, deckTitle: string): string {
   }
 }
 
+/** Image generation function signature used by autoIllustrateDeck.
+ *  Defaults to the real `generateImage` from imageGen.ts; overridable
+ *  for tests / non-default providers. */
+export type ImageGenerator = (
+  provider: ProviderConfig,
+  prompt: string,
+  signal?: AbortSignal,
+) => Promise<{ dataUrl: string; width: number; height: number }>;
+
 export interface AutoIllustrateOptions {
   signal?: AbortSignal;
   onProgress?: IllustrationProgress;
@@ -88,6 +97,8 @@ export interface AutoIllustrateOptions {
    *  first failure aborts the whole run. Defaults to true so a single
    *  bad prompt doesn't lose the rest of the work. */
   continueOnError?: boolean;
+  /** Override the default image generator. Used by tests. */
+  imageGenerator?: ImageGenerator;
 }
 
 export interface AutoIllustrateResult {
@@ -110,6 +121,7 @@ export async function autoIllustrateDeck(
   }
 
   const continueOnError = opts.continueOnError !== false;
+  const imageGenerator = opts.imageGenerator ?? generateImage;
   const total = countIllustratable(deck);
   const newSlides: Slide[] = [];
   const failures: AutoIllustrateResult["failures"] = [];
@@ -136,7 +148,7 @@ export async function autoIllustrateDeck(
     const slideTitle = rawTitle || slide.kind;
     opts.onProgress?.(progressIndex - 1, total, slideTitle);
     try {
-      const generated = await generateImage(provider, prompt, opts.signal);
+      const generated = await imageGenerator(provider, prompt, opts.signal);
       const embed: SlideImageEmbed = {
         dataUrl: generated.dataUrl,
         width: generated.width,

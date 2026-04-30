@@ -3,7 +3,7 @@ import { useAppStore } from "../store/useAppStore";
 import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
-import { parseMarkdown } from "../md/parser";
+import { parseMarkdown, getBulletDominanceWarning } from "../md/parser";
 import { DEFAULT_PROMPT } from "../samples/defaultPrompt";
 import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
 import { BackButton } from "./BackButton";
@@ -114,6 +114,8 @@ export function Result() {
       const next = parseMarkdown(cleaned);
       if (next.slides.length === 0) throw new Error("スライドを抽出できませんでした");
       setDeck(next, cleaned);
+      const warning = getBulletDominanceWarning(next);
+      if (warning) setError(warning);
     } catch (e) {
       if (controller.signal.aborted) {
         const reason = controller.signal.reason;
@@ -394,5 +396,175 @@ function renderThumbBody(slide: Slide) {
           ))}
         </div>
       );
+    case "compare":
+      return (
+        <div className="grid h-full grid-cols-[1fr_auto_1fr] items-stretch gap-1">
+          {([slide.left, slide.right] as const).map((col, idx) => (
+            <div
+              key={idx}
+              className={`flex h-full flex-col rounded border p-1 ${
+                idx === 0 && col.tone === "bad"
+                  ? "border-red-500 bg-red-50"
+                  : idx === 1 && col.tone === "good"
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-current"
+              }`}
+            >
+              <div className="truncate text-[8px] font-bold">{col.heading}</div>
+              <div className="mt-0.5 flex-1 space-y-0.5 overflow-hidden text-[7px]">
+                {col.items.slice(0, 4).map((it, i) => (
+                  <div key={i} className="truncate">· {it}</div>
+                ))}
+              </div>
+              {idx === 0 && (
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+              )}
+            </div>
+          )).flatMap((card, i) =>
+            i === 0
+              ? [card, <div key="arrow" className="self-center text-base font-bold">▶</div>]
+              : [card],
+          )}
+        </div>
+      );
+    case "layered":
+      return (
+        <div className="flex h-full flex-col justify-center gap-1">
+          {slide.layers.slice(0, 5).map((layer, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-1 rounded border border-current bg-slate-50/70 px-1 py-0.5"
+              style={{ opacity: 1 - i * 0.08 }}
+            >
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-current text-[7px] font-bold text-white">
+                {i + 1}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-[8px] font-bold">{layer.heading}</div>
+                {layer.detail && (
+                  <div className="truncate text-[6px] opacity-70">{layer.detail}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    case "progress": {
+      const pct = Math.max(0, Math.min(100, slide.percent));
+      return (
+        <div className="flex h-full flex-col gap-2">
+          <div>
+            <div className="mb-0.5 flex justify-between text-[7px] font-bold">
+              <span>Progress</span>
+              <span>{pct}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-emerald-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+          <div className="grid flex-1 grid-cols-2 gap-1">
+            {slide.items.slice(0, 6).map((item, i) => (
+              <div key={i} className="rounded border border-current p-1">
+                <div className="truncate text-[7px] font-bold">{item.label}</div>
+                <div
+                  className={`mt-0.5 inline-block rounded px-1 text-[6px] ${
+                    item.state === "done"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : item.state === "next"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {item.state}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    case "chart": {
+      const values = slide.series.flatMap((srs) => srs.values).slice(0, 8);
+      const max = Math.max(1, ...values.map((v) => Math.abs(v)));
+      if (slide.chartType === "pie" || slide.chartType === "doughnut") {
+        return (
+          <div className="flex h-full items-center justify-center gap-3">
+            <div
+              className={`h-14 w-14 rounded-full ${slide.chartType === "doughnut" ? "ring-8 ring-white" : ""}`}
+              style={{
+                background:
+                  "conic-gradient(#1B3A6B 0 35%, #ED6C02 35% 62%, #2E7D32 62% 82%, #D0D0D0 82% 100%)",
+              }}
+            />
+            <div className="min-w-0 space-y-0.5">
+              {slide.labels.slice(0, 4).map((label, i) => (
+                <div key={i} className="truncate text-[7px]">■ {label}</div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className="flex h-full items-end gap-1 px-1 pb-2">
+          {values.map((v, i) => (
+            <div
+              key={i}
+              className="flex flex-1 flex-col items-center justify-end gap-0.5"
+            >
+              <div
+                className="w-full rounded-t bg-current opacity-80"
+                style={{ height: `${Math.max(8, (Math.abs(v) / max) * 70)}%` }}
+              />
+              <div className="max-w-full truncate text-[6px] opacity-70">
+                {slide.labels[i % slide.labels.length]}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case "mockup": {
+      const isPhone = slide.mockupType === "phone";
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div
+            className={`${isPhone ? "h-full w-16" : "h-[85%] w-full"} overflow-hidden rounded border border-current bg-white`}
+          >
+            <div
+              className={`flex h-4 items-center gap-1 px-1 text-[6px] font-bold ${
+                slide.mockupType === "pdf"
+                  ? "bg-red-700 text-white"
+                  : slide.mockupType === "phone"
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-700"
+              }`}
+            >
+              {slide.mockupType === "browser" && (
+                <>
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                </>
+              )}
+              <span className="truncate">{slide.url || slide.mockupType}</span>
+            </div>
+            <div className="space-y-1 p-1">
+              {slide.bodyLines.slice(0, 7).map((line, i) => (
+                <div
+                  key={i}
+                  className="h-2 rounded bg-slate-200"
+                  style={{ width: `${95 - (i % 3) * 15}%` }}
+                >
+                  <span className="sr-only">{line}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 }
