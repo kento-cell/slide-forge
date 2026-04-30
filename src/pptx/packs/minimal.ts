@@ -127,7 +127,18 @@ export function renderMinimalSlide(
       return renderChart(s, slide, theme, page, total);
     case "mockup":
       return renderMockup(s, slide, theme, page, total);
+    default:
+      // Compile-time exhaustiveness check: if a new SlideKind is added
+      // to the union without a case here, TS errors on this line. The
+      // throw is only reachable if someone bypasses TS at runtime.
+      return assertNever(slide);
   }
+}
+
+function assertNever(x: never): never {
+  throw new Error(
+    `Unhandled slide kind in minimal pack: ${(x as { kind?: string }).kind}`,
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -251,6 +262,7 @@ function renderBullets(
       fontSize: 18,
       color: t.colors.text,
       valign: "top",
+      fit: "shrink",
     });
   });
   captionLine(s, slide.caption, t);
@@ -305,6 +317,7 @@ function renderTwoColumn(
         fontSize: 14,
         color: t.colors.text,
         valign: "middle",
+        fit: "shrink",
       });
     });
   });
@@ -612,6 +625,12 @@ function fitInside(
   imageH: number,
   box: { x: number; y: number; w: number; h: number },
 ) {
+  // Guard against missing/zero dimensions (some image sources don't
+  // expose intrinsic size). Falling back to the box bounds keeps the
+  // image visible instead of producing NaN positions.
+  if (!imageW || !imageH || imageW <= 0 || imageH <= 0) {
+    return { x: box.x, y: box.y, w: box.w, h: box.h };
+  }
   const scale = Math.min(box.w / imageW, box.h / imageH);
   const w = imageW * scale;
   const h = imageH * scale;
@@ -664,6 +683,7 @@ function renderProcess(
       color: t.colors.text,
       align: "center",
       valign: "middle",
+      fit: "shrink",
     });
     if (step.detail) {
       s.addText(step.detail, {
@@ -743,6 +763,7 @@ function renderCards(
       fontFace: t.fontHead,
       fontSize: 18,
       color: t.colors.text,
+      fit: "shrink",
     });
     s.addText(card.body, {
       x: x + 0.3,
@@ -753,6 +774,7 @@ function renderCards(
       fontSize: 13,
       color: t.colors.textMuted,
       valign: "top",
+      fit: "shrink",
     });
   });
   captionLine(s, slide.caption, t);
@@ -968,25 +990,33 @@ function renderProgress(
       fontSize: 14,
       color: stateColor,
     });
+    // Note column reserves the right edge; shrink label width when a
+    // note is present to avoid overlap (label was W-3.0 wide and the
+    // note started at W-3.5, overlapping by ~2 inches).
+    const noteW = 2.5;
+    const noteX = W - 1.0 - noteW;
+    const labelW = it.note ? noteX - 1.5 - 0.2 : W - 3.0;
     s.addText(it.label, {
       x: 1.5,
       y,
-      w: W - 3.0,
+      w: labelW,
       h: 0.4,
       fontFace: t.fontBody,
       fontSize: 14,
       color: t.colors.text,
+      fit: "shrink",
     });
     if (it.note) {
       s.addText(it.note, {
-        x: W - 3.5,
+        x: noteX,
         y,
-        w: 2.5,
+        w: noteW,
         h: 0.4,
         fontFace: t.fontBody,
         fontSize: 11,
         color: t.colors.textMuted,
         align: "right",
+        fit: "shrink",
       });
     }
   });
