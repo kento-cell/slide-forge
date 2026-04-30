@@ -105,41 +105,22 @@ export function Main() {
 
       try {
         const text = textFiles[0] ? await textFiles[0].text() : "";
-        if (imageFiles.length === 0) {
-          setPrompt(text, true);
-          setError(null);
-          return;
+        if (text) setPrompt(text, true);
+        // Images go into pendingImages so they can be embedded into
+        // LLM-generated slides at handleGenerate time. Earlier behavior
+        // dropped users straight into the result screen with the image
+        // as a standalone slide, which made it impossible to combine
+        // a D&D'd image with a text prompt.
+        if (imageFiles.length > 0) {
+          const imageSlides = await filesToImageSlides(imageFiles);
+          setPendingImages((cur) => [...cur, ...imageSlides]);
         }
-
-        const imageSlides = await filesToImageSlides(imageFiles);
-        const parsed = text.trim() ? parseMarkdown(text) : null;
-        const hasParsedSlides = Boolean(parsed && parsed.slides.length > 0);
-        const title =
-          hasParsedSlides && parsed
-            ? parsed.title
-            : imageSlides.length === 1
-              ? imageSlides[0].title
-              : "画像スライド";
-        const deck = {
-          title,
-          slides: [
-            ...(hasParsedSlides && parsed ? parsed.slides : []),
-            ...imageSlides,
-          ],
-        };
-        const raw = [
-          hasParsedSlides ? text.trim() : `# ${title}`,
-          imageSlidesToMarkdown(imageSlides),
-        ].join("\n\n");
-        setPrompt(text, Boolean(text));
-        setDeck(deck, raw);
-        setScreen("result");
         setError(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : "ファイルの読み込みに失敗しました");
       }
     },
-    [setDeck, setError, setPrompt, setScreen],
+    [setError, setPrompt],
   );
 
   // Cap any single LLM call. Cloud providers usually answer in <30s;
@@ -304,20 +285,47 @@ export function Main() {
           );
         }
       }
-      // Append AI-generated images (in order they were generated) to
-      // the parsed deck. They become regular image slides in the deck
-      // and disappear from the "pending" panel on success.
+      // Distribute pending images (from D&D or AI gen panel) into the
+      // generated slides as embedded images, NOT as standalone slides.
+      // Embeddable kinds: cover / bullets / section / summary. Slots
+      // are filled in slide order, skipping kinds that already have an
+      // image (e.g., from autoIllustrate above). Any leftover images
+      // fall back to standalone image slides at the end so nothing is
+      // lost when the user supplies more images than slots.
+      const imageQueue = [...pendingImages];
+      const distributedSlides = parsed.slides.map((slide) => {
+        if (imageQueue.length === 0) return slide;
+        const canEmbed =
+          slide.kind === "cover" ||
+          slide.kind === "bullets" ||
+          slide.kind === "section" ||
+          slide.kind === "summary";
+        if (!canEmbed) return slide;
+        if ("image" in slide && slide.image) return slide;
+        const img = imageQueue.shift();
+        if (!img) return slide;
+        return {
+          ...slide,
+          image: {
+            dataUrl: img.dataUrl,
+            width: img.width,
+            height: img.height,
+            alt: img.alt,
+          },
+        };
+      });
       const finalDeck = {
         ...parsed,
         title:
           parsed.title === "Untitled Deck" && pendingImages.length > 0
             ? pendingImages[0].title
             : parsed.title,
-        slides: [...parsed.slides, ...pendingImages],
+        slides: [...distributedSlides, ...imageQueue],
       };
-      const finalRaw = pendingImages.length > 0
-        ? `${cleaned}\n\n${imageSlidesToMarkdown(pendingImages)}`
-        : cleaned;
+      const finalRaw =
+        imageQueue.length > 0
+          ? `${cleaned}\n\n${imageSlidesToMarkdown(imageQueue)}`
+          : cleaned;
       setDeck(finalDeck, finalRaw);
       setPendingImages([]);
       const warning = getBulletDominanceWarning(finalDeck);
