@@ -50,7 +50,40 @@ export function parseMarkdown(md: string): Deck {
   return { title: cover?.title ?? "Untitled Deck", slides: out };
 }
 
-function linesToSlide(title: string, lines: string[]): Slide {
+// Strip a "> キャプション: ..." (or "> caption: ...") line out of a
+// slide body. The captured text becomes the slide-level caption shown
+// at the bottom of the rendered slide. Returns the remaining body lines.
+function extractCaption(lines: string[]): { caption?: string; rest: string[] } {
+  const re = /^>\s*(?:キャプション|caption)\s*[:：]\s*(.+)$/i;
+  let caption: string | undefined;
+  const rest: string[] = [];
+  for (const line of lines) {
+    const m = line.trim().match(re);
+    if (m) caption = m[1].trim();
+    else rest.push(line);
+  }
+  return { caption, rest };
+}
+
+function linesToSlide(title: string, originalLines: string[]): Slide {
+  const { caption, rest: lines } = extractCaption(originalLines);
+  const slide = linesToSlideInner(title, lines);
+  if (caption && supportsCaption(slide.kind)) {
+    (slide as { caption?: string }).caption = caption;
+  }
+  return slide;
+}
+
+function supportsCaption(kind: Slide["kind"]): boolean {
+  return (
+    kind !== "cover" &&
+    kind !== "section" &&
+    kind !== "stat" &&
+    kind !== "image"
+  );
+}
+
+function linesToSlideInner(title: string, lines: string[]): Slide {
   // SECTION 01 / Section 1 / 第1章 / 章 1 — chapter divider with a
   // big rendered numeral. Caller writes ## SECTION 01: 章タイトル.
   const sectionMatch = title.match(
@@ -59,7 +92,6 @@ function linesToSlide(title: string, lines: string[]): Slide {
   if (sectionMatch && /^(SECTION|Section|セクション|第)/.test(title)) {
     const idx = sectionMatch[1].padStart(2, "0");
     const heading = sectionMatch[2].trim();
-    // Subtitle: first non-empty quoted line, e.g. "> 副題: ..."
     const sub = lines
       .map((l) => l.trim())
       .find((l) => /^>/.test(l));
@@ -85,9 +117,7 @@ function linesToSlide(title: string, lines: string[]): Slide {
     };
   }
 
-  // FLOW: 手順1 / 手順2 / 手順3 — process arrow chain. Each item
-  // can be either "label" or "label | detail" for a longer caption.
-  // The slide title goes after a colon: "## FLOW プロジェクトの段取り"
+  // FLOW: 手順1 / 手順2 / 手順3 — process arrow chain.
   const flowMatch = title.match(/^FLOW(?:\s+(.+))?$/);
   if (flowMatch) {
     const flowTitle = flowMatch[1]?.trim() || "プロセスフロー";
@@ -106,7 +136,6 @@ function linesToSlide(title: string, lines: string[]): Slide {
 
   // CARDS: 3 cards in a row. Body uses 3 bullet lines, each
   //   "見出し | 説明文"
-  // (the pipe separates heading from body).
   const cardsMatch = title.match(/^CARDS(?:\s+(.+))?$/);
   if (cardsMatch) {
     const cardsTitle = cardsMatch[1]?.trim() || "ハイライト";
@@ -122,6 +151,141 @@ function linesToSlide(title: string, lines: string[]): Slide {
       });
       return { kind: "cards", title: cardsTitle, cards };
     }
+  }
+
+  // COMPARE: Before → arrow → After. Body uses ### subheadings to
+  // delimit the two cards, optional "| bad" / "| good" tone.
+  //   ## COMPARE 従来 vs AI化後
+  //   ### 従来 | bad
+  //   - UI クレーム
+  //   ### AI化後 | good
+  //   - AI で網羅
+  //   > 矢印: AI 化
+  const compareMatch = title.match(/^COMPARE(?:\s+(.+))?$/);
+  if (compareMatch) {
+    const compareTitle = compareMatch[1]?.trim() || "比較";
+    return parseCompare(compareTitle, lines);
+  }
+
+  // LAYERED: stacked layers. Body uses bullet lines "見出し | 詳細".
+  //   ## LAYERED アーキテクチャ
+  //   - Frontend | React + Tailwind
+  //   - API | FastAPI
+  //   - DB | PostgreSQL
+  const layeredMatch = title.match(/^LAYERED(?:\s+(.+))?$/);
+  if (layeredMatch) {
+    const layeredTitle = layeredMatch[1]?.trim() || "階層構造";
+    const layerLines = lines
+      .map((l) => l.trim())
+      .filter((l) => /^[-*]\s+/.test(l))
+      .map((l) => l.replace(/^[-*]\s+/, ""));
+    if (layerLines.length >= 2) {
+      const layers = layerLines.slice(0, 5).map((line) => {
+        const [heading, ...rest] = line.split("|").map((s) => s.trim());
+        return { heading, detail: rest.length ? rest.join(" / ") : undefined };
+      });
+      return { kind: "layered", title: layeredTitle, layers };
+    }
+  }
+
+  // PROGRESS: percent + state cards. Format:
+  //   ## PROGRESS 50 開発進捗
+  //   - Phase 1 認証 | done
+  //   - Phase 2 AI レビュー | done
+  //   - Phase 5 ナレッジ | next | 来月着手
+  //   - Phase 6 レポート | todo
+  const progressMatch = title.match(/^PROGRESS(?:\s+(\d{1,3}))?\s*(.*)$/);
+  if (progressMatch && /^PROGRESS/.test(title)) {
+    const percent = parseInt(progressMatch[1] || "0", 10);
+    const progressTitle = progressMatch[2]?.trim() || "進捗状況";
+    const itemLines = lines
+      .map((l) => l.trim())
+      .filter((l) => /^[-*]\s+/.test(l))
+      .map((l) => l.replace(/^[-*]\s+/, ""));
+    if (itemLines.length >= 1) {
+      const items = itemLines.slice(0, 8).map((line) => {
+        const parts = line.split("|").map((s) => s.trim());
+        const label = parts[0];
+        const stateRaw = (parts[1] || "todo").toLowerCase();
+        const state: "done" | "next" | "todo" =
+          stateRaw === "done" || stateRaw === "完了" || stateRaw === "✅"
+            ? "done"
+            : stateRaw === "next" ||
+                stateRaw === "進行中" ||
+                stateRaw === "着手予定" ||
+                stateRaw === "▶"
+              ? "next"
+              : "todo";
+        const note = parts[2];
+        return { label, state, note };
+      });
+      return { kind: "progress", title: progressTitle, percent, items };
+    }
+  }
+
+  // CHART: native bar/line/pie/doughnut. Body is a markdown table
+  // where the first column is x-axis labels and remaining columns
+  // are series.
+  //   ## CHART bar 売上推移
+  //   | 四半期 | 2024 | 2025 |
+  //   |---|---|---|
+  //   | Q1 | 100 | 150 |
+  const chartMatch = title.match(/^CHART\s+(bar|line|pie|doughnut)(?:\s+(.+))?$/i);
+  if (chartMatch) {
+    const chartType = chartMatch[1].toLowerCase() as
+      | "bar"
+      | "line"
+      | "pie"
+      | "doughnut";
+    const chartTitle = chartMatch[2]?.trim() || "Chart";
+    const tableLines = lines.filter((l) => l.trim().startsWith("|"));
+    if (tableLines.length >= 2) {
+      const rows = tableLines
+        .map((l) => l.trim())
+        .filter((l) => !/^\|[\s\-:|]+\|$/.test(l))
+        .map((l) =>
+          l
+            .replace(/^\||\|$/g, "")
+            .split("|")
+            .map((c) => c.trim()),
+        );
+      if (rows.length >= 2) {
+        const [header, ...body] = rows;
+        const labels = body.map((r) => r[0]);
+        const series = header.slice(1).map((seriesName, i) => ({
+          name: seriesName,
+          values: body.map((r) => parseFloat(r[i + 1]?.replace(/[^\d.\-]/g, "")) || 0),
+        }));
+        return { kind: "chart", title: chartTitle, chartType, labels, series };
+      }
+    }
+  }
+
+  // MOCKUP: browser / pdf / phone window. Body lines render inside
+  // the mockup viewport. Optional "> URL: ..." sets the chrome label.
+  //   ## MOCKUP browser AIレビュー画面
+  //   > URL: https://review.example.com
+  //   - 工程選択: UI / SS
+  //   - ファイル D&D
+  //   - ▶ 実行ボタン
+  const mockupMatch = title.match(/^MOCKUP\s+(browser|pdf|phone)(?:\s+(.+))?$/i);
+  if (mockupMatch) {
+    const mockupType = mockupMatch[1].toLowerCase() as "browser" | "pdf" | "phone";
+    const mockupTitle = mockupMatch[2]?.trim() || "Screen";
+    let url: string | undefined;
+    const bodyLines: string[] = [];
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line) continue;
+      const urlMatch = line.match(/^>\s*(?:URL|url|アドレス)\s*[:：]\s*(.+)$/);
+      if (urlMatch) {
+        url = urlMatch[1].trim();
+        continue;
+      }
+      if (line.startsWith(">")) continue;
+      bodyLines.push(line.replace(/^[-*]\s+/, ""));
+    }
+    return { kind: "mockup", title: mockupTitle, mockupType, url, bodyLines };
   }
 
   const tableLines = lines.filter((l) => l.trim().startsWith("|"));
@@ -154,6 +318,60 @@ function linesToSlide(title: string, lines: string[]): Slide {
     return { kind: "summary", title, items };
   }
   return { kind: "bullets", title, items };
+}
+
+function parseCompare(title: string, lines: string[]): Slide {
+  let leftHeading = "Before";
+  let rightHeading = "After";
+  let leftTone: "bad" | undefined;
+  let rightTone: "good" | undefined;
+  const leftItems: string[] = [];
+  const rightItems: string[] = [];
+  let arrowLabel: string | undefined;
+  let current: "left" | "right" | null = null;
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    const arrowMatch = line.match(/^>\s*(?:矢印|arrow)\s*[:：]\s*(.+)$/i);
+    if (arrowMatch) {
+      arrowLabel = arrowMatch[1].trim();
+      continue;
+    }
+    const h3 = line.match(/^###\s+(.+)$/);
+    if (h3) {
+      const [heading, ...toneParts] = h3[1].split("|").map((p) => p.trim());
+      const tone = toneParts.join(" ").toLowerCase();
+      if (current === null || current === "left") {
+        if (current === null) {
+          current = "left";
+          leftHeading = heading;
+          if (tone === "bad" || tone === "悪" || tone === "✕") leftTone = "bad";
+        } else {
+          current = "right";
+          rightHeading = heading;
+          if (tone === "good" || tone === "良" || tone === "✓") rightTone = "good";
+        }
+      } else {
+        // already at right; ignore further headings
+      }
+      continue;
+    }
+    const itemMatch = line.match(/^[-*]\s+(.+)$/);
+    if (itemMatch && current) {
+      const text = itemMatch[1].trim();
+      if (current === "left") leftItems.push(text);
+      else rightItems.push(text);
+    }
+  }
+
+  return {
+    kind: "compare",
+    title,
+    left: { heading: leftHeading, items: leftItems, tone: leftTone },
+    right: { heading: rightHeading, items: rightItems, tone: rightTone },
+    arrowLabel,
+  };
 }
 
 function parseTable(title: string, tableLines: string[]): Slide {
