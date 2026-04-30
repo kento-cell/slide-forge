@@ -56,6 +56,16 @@ function renderSlide(
       return renderProcess(s, slide, theme, page, total);
     case "cards":
       return renderCards(s, slide, theme, page, total);
+    case "compare":
+      return renderCompare(s, slide, theme, page, total);
+    case "layered":
+      return renderLayered(s, slide, theme, page, total);
+    case "progress":
+      return renderProgress(s, slide, theme, page, total);
+    case "chart":
+      return renderChart(s, slide, theme, page, total);
+    case "mockup":
+      return renderMockup(s, slide, theme, page, total);
   }
 }
 
@@ -133,6 +143,25 @@ function chromeFooter(s: Slide_, page: number, total: number, t: Theme) {
     color: t.colors.textMuted,
     align: "right",
     valign: "middle",
+  });
+}
+
+// Bottom italic takeaway line — the "you can leave with this" anchor.
+// Sits just above chromeFooter. Skipped silently if caption is empty.
+function captionRow(s: Slide_, caption: string | undefined, t: Theme) {
+  if (!caption || !caption.trim()) return;
+  s.addText(caption.trim(), {
+    x: 0.7,
+    y: H - 0.78,
+    w: W - 1.4,
+    h: 0.4,
+    fontFace: t.fontBody,
+    fontSize: 12,
+    italic: true,
+    color: t.colors.textMuted,
+    align: "center",
+    valign: "middle",
+    fit: "shrink",
   });
 }
 
@@ -392,6 +421,7 @@ function renderBullets(
       valign: "middle",
     });
   });
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
 
@@ -477,6 +507,7 @@ function renderTwoColumn(
       });
     });
   });
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
 
@@ -525,6 +556,7 @@ function renderTable(
     border: { type: "solid", pt: 0.5, color: t.colors.border },
     rowH: 0.55,
   });
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
 
@@ -666,6 +698,7 @@ function renderSummary(
       valign: "middle",
     });
   });
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
 
@@ -980,7 +1013,7 @@ function renderProcess(
   t: Theme,
   page: number,
   total: number,
-) {
+): void {
   chromeAccent(s, t);
   chromeTitle(s, slide.title, t);
   const steps = slide.steps.slice(0, 5);
@@ -1066,6 +1099,7 @@ function renderProcess(
     }
   });
 
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
 
@@ -1179,5 +1213,602 @@ function renderCards(
     });
   });
 
+  captionRow(s, slide.caption, t);
+  chromeFooter(s, page, total, t);
+}
+
+// ---------------------------------------------------------------------
+// Compare — Before → arrow → After. Two cards with center arrow.
+// Tone "bad" colors the left card red-tinted; "good" colors right green.
+// ---------------------------------------------------------------------
+
+function renderCompare(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "compare" }>,
+  t: Theme,
+  page: number,
+  total: number,
+): void {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+
+  const cardW = 5.5;
+  const arrowW = 1.0;
+  const totalW = cardW * 2 + arrowW;
+  const startX = (W - totalW) / 2;
+  const cardY = 1.5;
+  const cardH = 4.8;
+
+  // Left card — typically "Before" / 従来
+  const leftAccent = slide.left.tone === "bad" ? t.colors.bad : t.colors.textMuted;
+  const leftBg = slide.left.tone === "bad" ? "FFEBEE" : t.colors.bgAlt;
+  const leftIcon = slide.left.tone === "bad" ? "✕" : "•";
+  drawCompareCard(s, t, {
+    x: startX,
+    y: cardY,
+    w: cardW,
+    h: cardH,
+    bg: leftBg,
+    accent: leftAccent,
+    heading: slide.left.heading,
+    items: slide.left.items,
+    icon: leftIcon,
+  });
+
+  // Center arrow + optional label
+  const arrowX = startX + cardW;
+  const arrowY = cardY + cardH / 2 - 0.5;
+  if (slide.arrowLabel) {
+    s.addText(slide.arrowLabel, {
+      x: arrowX - 0.3,
+      y: arrowY - 0.55,
+      w: arrowW + 0.6,
+      h: 0.4,
+      fontFace: t.fontHead,
+      fontSize: 13,
+      bold: true,
+      color: t.colors.primary,
+      align: "center",
+      valign: "middle",
+    });
+  }
+  s.addShape("rightArrow", {
+    x: arrowX + 0.1,
+    y: arrowY,
+    w: arrowW - 0.2,
+    h: 1.0,
+    fill: { color: t.colors.primary },
+    line: { color: t.colors.primary, width: 0 },
+  });
+
+  // Right card — typically "After" / 改善後
+  const rightX = startX + cardW + arrowW;
+  const rightAccent = slide.right.tone === "good" ? t.colors.good : t.colors.primary;
+  const rightBg = slide.right.tone === "good" ? "E8F5E9" : t.colors.bgAlt;
+  const rightIcon = slide.right.tone === "good" ? "✓" : "•";
+  drawCompareCard(s, t, {
+    x: rightX,
+    y: cardY,
+    w: cardW,
+    h: cardH,
+    bg: rightBg,
+    accent: rightAccent,
+    heading: slide.right.heading,
+    items: slide.right.items,
+    icon: rightIcon,
+  });
+
+  captionRow(s, slide.caption, t);
+  chromeFooter(s, page, total, t);
+}
+
+function drawCompareCard(
+  s: Slide_,
+  t: Theme,
+  o: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    bg: string;
+    accent: string;
+    heading: string;
+    items: string[];
+    icon: string;
+  },
+) {
+  s.addShape("roundRect", {
+    x: o.x,
+    y: o.y,
+    w: o.w,
+    h: o.h,
+    fill: { color: o.bg },
+    line: { color: o.accent, width: 1.5 },
+    rectRadius: 0.12,
+  });
+  s.addText(o.heading, {
+    x: o.x + 0.3,
+    y: o.y + 0.2,
+    w: o.w - 0.6,
+    h: 0.6,
+    fontFace: t.fontHead,
+    fontSize: 22,
+    bold: true,
+    color: o.accent,
+    valign: "middle",
+  });
+  s.addShape("line", {
+    x: o.x + 0.3,
+    y: o.y + 0.85,
+    w: o.w - 0.6,
+    h: 0,
+    line: { color: o.accent, width: 1 },
+  });
+  o.items.slice(0, 5).forEach((it, i) => {
+    const y = o.y + 1.1 + i * 0.7;
+    s.addShape("ellipse", {
+      x: o.x + 0.4,
+      y: y + 0.05,
+      w: 0.4,
+      h: 0.4,
+      fill: { color: o.accent },
+      line: { color: o.accent, width: 0 },
+    });
+    s.addText(o.icon, {
+      x: o.x + 0.4,
+      y: y + 0.05,
+      w: 0.4,
+      h: 0.4,
+      fontFace: "Calibri",
+      fontSize: 16,
+      bold: true,
+      color: "FFFFFF",
+      align: "center",
+      valign: "middle",
+    });
+    s.addText(it, {
+      x: o.x + 1.0,
+      y,
+      w: o.w - 1.3,
+      h: 0.5,
+      fontFace: t.fontBody,
+      fontSize: 14,
+      color: t.colors.text,
+      valign: "middle",
+    });
+  });
+}
+
+// ---------------------------------------------------------------------
+// Layered — N (3-5) horizontal bands stacked top→down. Each band has
+// a numbered badge, heading, optional detail. Color rotates so the eye
+// distinguishes layers without hard borders.
+// ---------------------------------------------------------------------
+
+function renderLayered(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "layered" }>,
+  t: Theme,
+  page: number,
+  total: number,
+): void {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+
+  const layers = slide.layers.slice(0, 5);
+  const n = layers.length;
+  const startY = 1.5;
+  const endY = H - 0.85;
+  const gap = 0.18;
+  const layerH = (endY - startY - gap * (n - 1)) / n;
+  const palette = [t.colors.primary, t.colors.accent, t.colors.good, t.colors.primary, t.colors.accent];
+
+  layers.forEach((layer, i) => {
+    const y = startY + i * (layerH + gap);
+    const accent = palette[i % palette.length];
+
+    // Layer body
+    s.addShape("roundRect", {
+      x: 0.5,
+      y,
+      w: W - 1,
+      h: layerH,
+      fill: { color: t.colors.bgAlt },
+      line: { color: accent, width: 1.5 },
+      rectRadius: 0.12,
+    });
+    // Left accent stripe inside
+    s.addShape("rect", {
+      x: 0.5,
+      y,
+      w: 0.18,
+      h: layerH,
+      fill: { color: accent },
+      line: { color: accent, width: 0 },
+    });
+    // Numbered badge
+    s.addShape("ellipse", {
+      x: 0.85,
+      y: y + layerH / 2 - 0.3,
+      w: 0.6,
+      h: 0.6,
+      fill: { color: accent },
+      line: { color: "FFFFFF", width: 2 },
+    });
+    s.addText(String(i + 1), {
+      x: 0.85,
+      y: y + layerH / 2 - 0.3,
+      w: 0.6,
+      h: 0.6,
+      fontFace: t.fontHead,
+      fontSize: 22,
+      bold: true,
+      color: "FFFFFF",
+      align: "center",
+      valign: "middle",
+    });
+    // Heading
+    s.addText(layer.heading, {
+      x: 1.7,
+      y: y + 0.18,
+      w: W - 2.2,
+      h: 0.55,
+      fontFace: t.fontHead,
+      fontSize: 18,
+      bold: true,
+      color: accent,
+      valign: "middle",
+    });
+    // Detail
+    if (layer.detail) {
+      s.addText(layer.detail, {
+        x: 1.7,
+        y: y + 0.78,
+        w: W - 2.2,
+        h: layerH - 0.95,
+        fontFace: t.fontBody,
+        fontSize: 13,
+        color: t.colors.text,
+        valign: "top",
+        fit: "shrink",
+      });
+    }
+  });
+
+  captionRow(s, slide.caption, t);
+  chromeFooter(s, page, total, t);
+}
+
+// ---------------------------------------------------------------------
+// Progress — top progress bar + state-card grid below. Each card has
+// done / next / todo state with matching color tokens.
+// ---------------------------------------------------------------------
+
+function renderProgress(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "progress" }>,
+  t: Theme,
+  page: number,
+  total: number,
+): void {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+
+  const percent = Math.max(0, Math.min(100, slide.percent));
+  const barX = 0.5;
+  const barY = 1.6;
+  const barW = W - 1;
+  const barH = 0.45;
+
+  // Label above bar
+  s.addText(`Progress: ${percent}%`, {
+    x: barX,
+    y: barY - 0.45,
+    w: 6,
+    h: 0.4,
+    fontFace: t.fontHead,
+    fontSize: 16,
+    bold: true,
+    color: t.colors.primary,
+    valign: "middle",
+  });
+  // Bar background
+  s.addShape("roundRect", {
+    x: barX,
+    y: barY,
+    w: barW,
+    h: barH,
+    fill: { color: t.colors.bgAlt },
+    line: { color: t.colors.border, width: 0.5 },
+    rectRadius: 0.08,
+  });
+  // Filled portion
+  if (percent > 0) {
+    s.addShape("roundRect", {
+      x: barX,
+      y: barY,
+      w: (barW * percent) / 100,
+      h: barH,
+      fill: { color: t.colors.good },
+      line: { color: t.colors.good, width: 0 },
+      rectRadius: 0.08,
+    });
+  }
+
+  // State cards grid
+  const items = slide.items.slice(0, 8);
+  const n = items.length;
+  const cols = n <= 4 ? Math.max(n, 1) : 4;
+  const rows = Math.ceil(n / cols);
+  const gridY = 2.55;
+  const gridGap = 0.15;
+  const gridEndY = H - 0.85;
+  const cellW = (W - 1 - gridGap * (cols - 1)) / cols;
+  const cellH = (gridEndY - gridY - gridGap * (rows - 1)) / rows;
+
+  const stateColor: Record<string, string> = {
+    done: t.colors.good,
+    next: t.colors.accent,
+    todo: t.colors.textMuted,
+  };
+  const stateBg: Record<string, string> = {
+    done: "E8F5E9",
+    next: "FFF3E0",
+    todo: t.colors.bgAlt,
+  };
+  const stateGlyph: Record<string, string> = {
+    done: "✓ Done",
+    next: "▶ Next",
+    todo: "□ Todo",
+  };
+
+  items.forEach((it, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = 0.5 + col * (cellW + gridGap);
+    const y = gridY + row * (cellH + gridGap);
+    const accent = stateColor[it.state];
+    const bg = stateBg[it.state];
+
+    s.addShape("roundRect", {
+      x,
+      y,
+      w: cellW,
+      h: cellH,
+      fill: { color: bg },
+      line: { color: accent, width: 1.5 },
+      rectRadius: 0.12,
+    });
+    // Index badge
+    s.addShape("roundRect", {
+      x: x + 0.2,
+      y: y + 0.2,
+      w: 0.7,
+      h: 0.4,
+      fill: { color: accent },
+      line: { color: accent, width: 0 },
+      rectRadius: 0.06,
+    });
+    s.addText(`P${i + 1}`, {
+      x: x + 0.2,
+      y: y + 0.2,
+      w: 0.7,
+      h: 0.4,
+      fontFace: t.fontHead,
+      fontSize: 13,
+      bold: true,
+      color: "FFFFFF",
+      align: "center",
+      valign: "middle",
+    });
+    // Label
+    s.addText(it.label, {
+      x: x + 1.0,
+      y: y + 0.15,
+      w: cellW - 1.2,
+      h: 0.5,
+      fontFace: t.fontHead,
+      fontSize: 14,
+      bold: true,
+      color: t.colors.text,
+      valign: "middle",
+      fit: "shrink",
+    });
+    // State indicator
+    s.addText(stateGlyph[it.state], {
+      x: x + 0.2,
+      y: y + cellH - 0.5,
+      w: cellW - 0.4,
+      h: 0.4,
+      fontFace: t.fontBody,
+      fontSize: 12,
+      color: accent,
+      valign: "middle",
+    });
+    // Note (optional)
+    if (it.note) {
+      s.addText(it.note, {
+        x: x + 0.2,
+        y: y + 0.75,
+        w: cellW - 0.4,
+        h: cellH - 1.3,
+        fontFace: t.fontBody,
+        fontSize: 11,
+        color: t.colors.textMuted,
+        valign: "top",
+        fit: "shrink",
+      });
+    }
+  });
+
+  captionRow(s, slide.caption, t);
+  chromeFooter(s, page, total, t);
+}
+
+// ---------------------------------------------------------------------
+// Chart — native pptxgenjs chart object. Editable in PowerPoint.
+// Supports bar / line / pie / doughnut.
+// ---------------------------------------------------------------------
+
+function renderChart(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "chart" }>,
+  t: Theme,
+  page: number,
+  total: number,
+): void {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+
+  const data = slide.series.map((srs) => ({
+    name: srs.name,
+    labels: slide.labels,
+    values: srs.values,
+  }));
+
+  const chartColors = [
+    t.colors.primary,
+    t.colors.accent,
+    t.colors.good,
+    t.colors.bad,
+    t.colors.textMuted,
+    t.colors.primaryDark,
+  ];
+
+  // pptxgenjs accepts string chart types. Cast keeps TS quiet across
+  // pptxgenjs versions where the enum may differ.
+  const chartType = slide.chartType as unknown as Parameters<Slide_["addChart"]>[0];
+
+  s.addChart(chartType, data, {
+    x: 0.6,
+    y: 1.5,
+    w: W - 1.2,
+    h: 4.85,
+    chartColors,
+    showLegend: true,
+    legendPos: "b",
+    legendFontSize: 12,
+    legendColor: t.colors.text,
+    catAxisLabelColor: t.colors.textMuted,
+    catAxisLabelFontSize: 11,
+    valAxisLabelColor: t.colors.textMuted,
+    valAxisLabelFontSize: 11,
+    showValue: false,
+    barDir: "col",
+    catAxisLabelFontFace: t.fontBody,
+    valAxisLabelFontFace: t.fontBody,
+    legendFontFace: t.fontBody,
+    showTitle: false,
+  });
+
+  captionRow(s, slide.caption, t);
+  chromeFooter(s, page, total, t);
+}
+
+// ---------------------------------------------------------------------
+// Mockup — browser / pdf / phone window with body content. Used for
+// "show what the screen looks like" slides without requiring a real
+// screenshot.
+// ---------------------------------------------------------------------
+
+function renderMockup(
+  s: Slide_,
+  slide: Extract<Slide, { kind: "mockup" }>,
+  t: Theme,
+  page: number,
+  total: number,
+): void {
+  chromeAccent(s, t);
+  chromeTitle(s, slide.title, t);
+
+  const frameX = 0.7;
+  const frameY = 1.5;
+  const frameW = W - 1.4;
+  const frameH = H - 2.55;
+
+  // Outer window frame
+  s.addShape("roundRect", {
+    x: frameX,
+    y: frameY,
+    w: frameW,
+    h: frameH,
+    fill: { color: t.colors.bg },
+    line: { color: t.colors.border, width: 1.5 },
+    rectRadius: 0.12,
+  });
+
+  const chromeH = 0.5;
+  let chromeBg: string;
+  let chromeText: string;
+  let chromeFontColor = "FFFFFF";
+
+  if (slide.mockupType === "browser") {
+    chromeBg = t.colors.bgAlt;
+    chromeFontColor = t.colors.text;
+    // Traffic light dots + URL bar
+    chromeText = `●  ●  ●     ${slide.url || "https://example.com"}`;
+  } else if (slide.mockupType === "pdf") {
+    chromeBg = "B71C1C";
+    chromeText = `📕   ${slide.url || "Document.pdf"}`;
+  } else {
+    chromeBg = t.colors.primaryDark;
+    chromeText = `📱   ${slide.url || "App"}`;
+  }
+
+  // Title bar
+  s.addShape("rect", {
+    x: frameX,
+    y: frameY,
+    w: frameW,
+    h: chromeH,
+    fill: { color: chromeBg },
+    line: { color: chromeBg, width: 0 },
+  });
+  s.addText(chromeText, {
+    x: frameX + 0.2,
+    y: frameY,
+    w: frameW - 0.4,
+    h: chromeH,
+    fontFace: t.fontBody,
+    fontSize: 12,
+    bold: true,
+    color: chromeFontColor,
+    valign: "middle",
+  });
+
+  // Body content — each line gets equal vertical share
+  const bodyX = frameX + 0.35;
+  const bodyY = frameY + chromeH + 0.25;
+  const bodyW = frameW - 0.7;
+  const bodyH = frameH - chromeH - 0.5;
+  const lines = slide.bodyLines.slice(0, 12);
+  if (lines.length > 0) {
+    const lineGap = bodyH / lines.length;
+    lines.forEach((line, i) => {
+      // Subtle alternating row tint for table-like readability
+      if (i % 2 === 1) {
+        s.addShape("rect", {
+          x: bodyX - 0.1,
+          y: bodyY + i * lineGap,
+          w: bodyW + 0.2,
+          h: lineGap,
+          fill: { color: t.colors.bgAlt },
+          line: { color: t.colors.bgAlt, width: 0 },
+        });
+      }
+      s.addText(line, {
+        x: bodyX,
+        y: bodyY + i * lineGap,
+        w: bodyW,
+        h: lineGap,
+        fontFace: t.fontBody,
+        fontSize: 14,
+        color: t.colors.text,
+        valign: "middle",
+      });
+    });
+  }
+
+  captionRow(s, slide.caption, t);
   chromeFooter(s, page, total, t);
 }
