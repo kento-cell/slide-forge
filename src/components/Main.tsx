@@ -278,7 +278,7 @@ export function Main() {
         setError(
           `⚠ 自動イラストはチェックされていますが、現在のプロバイダ ` +
             `(${settings.provider.id}) は画像生成に未対応です。` +
-            "⚙ → クラウドに切替 → Gemini/OpenAI キー設定で有効化できます。",
+            "ヘッダーの「プロバイダ変更」 → クラウド → Gemini/OpenAI キー設定で有効化できます。",
         );
       }
       // Auto-illustrate each cover/bullets/section/summary slide
