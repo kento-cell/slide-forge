@@ -36,24 +36,20 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+    <header className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎨</span>
-          <div>
-            <div className="font-head text-lg font-bold leading-none">
-              Slide Forge{" "}
-              <span className="ml-1 align-middle font-mono text-[10px] font-normal text-slate-500">
-                v{APP_VERSION}
-              </span>
-            </div>
-            <div className="text-[10px] text-slate-500">プロンプトから PowerPoint を生成</div>
+        <div className="flex items-baseline gap-3">
+          <div className="font-head text-base font-semibold tracking-tight">
+            Slide Forge
           </div>
+          <span className="font-mono text-[11px] text-slate-400">
+            v{APP_VERSION}
+          </span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="hidden sm:inline-flex items-center gap-2 border-l border-slate-200 pl-3 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400">
             <span
-              className={`h-2 w-2 rounded-full ${
+              className={`h-1.5 w-1.5 rounded-full ${
                 provider.id === "offline"
                   ? "bg-amber-500"
                   : provider.category === "local"
@@ -66,20 +62,20 @@ export function Header() {
           {isCloud && (
             <button
               type="button"
-              className="btn-ghost px-2 py-1 text-base"
+              className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
               title="保存済み API キーを削除"
               onClick={handleClearKey}
             >
-              🗑
+              キー削除
             </button>
           )}
           <button
             type="button"
-            className="btn-ghost px-2 py-1 text-sm"
+            className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
             title="プロバイダを変更 (Wizard に戻る)"
             onClick={handleSwitchProvider}
           >
-            🔄 プロバイダ変更
+            プロバイダ変更
           </button>
         </div>
       </div>

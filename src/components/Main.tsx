@@ -348,12 +348,12 @@ export function Main() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6">
-        <BackButton onClick={resetSetup} label="モード選択に戻る" topNav />
-        <h1 className="font-head text-2xl font-bold">プロンプトを書いて [生成]</h1>
-        <p className="text-sm text-slate-500">
+        <BackButton onClick={resetSetup} label="プロバイダを変更" topNav />
+        <h1 className="font-head text-xl font-semibold tracking-tight">プロンプト</h1>
+        <p className="mt-1 text-sm text-slate-500">
           {isOffline
             ? "AI なしモード: Markdown を直接 PowerPoint に変換します"
-            : "下のサンプルをそのまま [生成] でも動きます。編集すれば内容に追従します。"}
+            : "下のサンプルをそのまま生成しても動きます。編集すれば内容に追従します。"}
         </p>
       </div>
 
@@ -377,7 +377,7 @@ export function Main() {
         }}
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2 text-xs text-slate-500 dark:border-slate-800">
-          <span>📁 .md / .txt / 画像をドラッグ&ドロップ もしくは下に直接入力</span>
+          <span>.md / .txt / 画像をドラッグ&amp;ドロップ もしくは下に直接入力</span>
           <div className="flex items-center gap-2">
             <input
               ref={fileRef}
@@ -401,7 +401,7 @@ export function Main() {
                 onClick={() => setPrompt("", false)}
                 title="サンプルに戻す"
               >
-                ↻ サンプル
+                サンプルに戻す
               </button>
             )}
           </div>
@@ -428,7 +428,7 @@ export function Main() {
           slides appended to the deck on the main [▶ 生成]. */}
       <div className="card mt-6 p-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-sm font-semibold">🎨 AI で画像を生成 (オプション)</span>
+          <span className="text-sm font-semibold">画像生成 (オプション)</span>
           <span className="text-[10px] text-slate-500">
             {imageGenSupported
               ? `${settings.provider.id === "gemini" ? "Gemini" : "OpenAI gpt-image-1"} を使用`
@@ -457,7 +457,7 @@ export function Main() {
                     生成中… {formatElapsed(imageElapsedSec)}
                   </span>
                 ) : (
-                  "🎨 画像を生成"
+                  "画像を生成"
                 )}
               </button>
               {generatingImage && (
@@ -466,7 +466,7 @@ export function Main() {
                   className="btn-ghost text-sm"
                   onClick={handleCancelImageGen}
                 >
-                  ⏹ キャンセル
+                  キャンセル
                 </button>
               )}
               {pendingImages.length > 0 && (
@@ -526,7 +526,7 @@ export function Main() {
           />
           <div>
             <div className="font-semibold">
-              📸 各スライドに自動でイラストを添付
+              各スライドに自動で画像を添付
               {!imageGenSupported && (
                 <span className="ml-2 text-xs text-amber-600">
                   (Gemini / OpenAI に切替えると有効)
@@ -603,12 +603,12 @@ export function Main() {
               className="btn-outline px-4 py-3 text-sm"
               onClick={handleCancel}
             >
-              ⏹ キャンセル
+              キャンセル
             </button>
           )}
           <button
             type="button"
-            className="btn-primary px-8 py-3 text-lg"
+            className="btn-primary px-8 py-3 text-base font-semibold"
             onClick={handleGenerate}
             disabled={generating}
           >
@@ -618,7 +618,7 @@ export function Main() {
                 生成中… {formatElapsed(elapsedSec)}
               </span>
             ) : (
-              "▶ 生成"
+              "生成"
             )}
           </button>
         </div>
