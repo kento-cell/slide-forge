@@ -24,11 +24,17 @@ import {
   isImageGenSupported,
 } from "../providers/imageGen";
 import { autoIllustrateDeck } from "../providers/autoIllustrate";
-import type { ImageSlide, ThemeId } from "../types";
+import type { ImageSlide, PackId, ThemeId } from "../types";
+
+const PACKS: { id: PackId; label: string; hint: string }[] = [
+  { id: "consulting", label: "Consulting", hint: "情報密度高い、装飾豊富" },
+  { id: "minimal", label: "Minimal", hint: "余白広い、装飾なし、タイポ強調" },
+];
 
 export function Main() {
   const settings = useAppStore((s) => s.settings);
   const setTheme = useAppStore((s) => s.setTheme);
+  const setPack = useAppStore((s) => s.setPack);
   const resetSetup = useAppStore((s) => s.resetSetup);
   const prompt = useAppStore((s) => s.prompt);
   const promptTouched = useAppStore((s) => s.promptTouched);
@@ -540,29 +546,55 @@ export function Main() {
         </label>
       </div>
 
-      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold">テーマ:</span>
-          {(Object.keys(THEMES) as ThemeId[]).map((id) => (
-            <label
-              key={id}
-              className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition ${
-                settings.theme === id
-                  ? "border-navy-700 bg-navy-50 text-navy-900 dark:bg-navy-900/40 dark:text-white"
-                  : "border-slate-200 hover:border-slate-300 dark:border-slate-700"
-              }`}
-            >
-              <input
-                type="radio"
-                name="theme"
-                value={id}
-                checked={settings.theme === id}
-                onChange={() => setTheme(id)}
-                className="sr-only"
-              />
-              {THEMES[id].label}
-            </label>
-          ))}
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold w-16">テーマ:</span>
+            {(Object.keys(THEMES) as ThemeId[]).map((id) => (
+              <label
+                key={id}
+                className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs transition ${
+                  settings.theme === id
+                    ? "border-navy-700 bg-navy-50 text-navy-900 dark:bg-navy-900/40 dark:text-white"
+                    : "border-slate-200 hover:border-slate-300 dark:border-slate-700"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="theme"
+                  value={id}
+                  checked={settings.theme === id}
+                  onChange={() => setTheme(id)}
+                  className="sr-only"
+                />
+                {THEMES[id].label}
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold w-16">デザイン:</span>
+            {PACKS.map((p) => (
+              <label
+                key={p.id}
+                title={p.hint}
+                className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs transition ${
+                  (settings.pack ?? "consulting") === p.id
+                    ? "border-navy-700 bg-navy-50 text-navy-900 dark:bg-navy-900/40 dark:text-white"
+                    : "border-slate-200 hover:border-slate-300 dark:border-slate-700"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="pack"
+                  value={p.id}
+                  checked={(settings.pack ?? "consulting") === p.id}
+                  onChange={() => setPack(p.id)}
+                  className="sr-only"
+                />
+                {p.label}
+              </label>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {generating && (
