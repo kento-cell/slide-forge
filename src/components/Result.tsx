@@ -393,37 +393,40 @@ function renderThumbBody(slide: Slide) {
           ))}
         </div>
       );
-    case "compare":
+    case "compare": {
+      // Two cards + center arrow. Earlier version used .map().flatMap()
+      // with a stray absolute div which broke the layout — render the
+      // pair explicitly so it matches the PPTX output.
+      const cardClass = (tone?: string) =>
+        `flex h-full flex-1 flex-col rounded border p-1 overflow-hidden ${
+          tone === "bad"
+            ? "border-red-400 bg-red-50/40"
+            : tone === "good"
+              ? "border-emerald-400 bg-emerald-50/40"
+              : "border-slate-300"
+        }`;
       return (
-        <div className="grid h-full grid-cols-[1fr_auto_1fr] items-stretch gap-1">
-          {([slide.left, slide.right] as const).map((col, idx) => (
-            <div
-              key={idx}
-              className={`flex h-full flex-col rounded border p-1 ${
-                idx === 0 && col.tone === "bad"
-                  ? "border-red-500 bg-red-50"
-                  : idx === 1 && col.tone === "good"
-                    ? "border-emerald-500 bg-emerald-50"
-                    : "border-current"
-              }`}
-            >
-              <div className="truncate text-[8px] font-bold">{col.heading}</div>
-              <div className="mt-0.5 flex-1 space-y-0.5 overflow-hidden text-[7px]">
-                {col.items.slice(0, 4).map((it, i) => (
-                  <div key={i} className="truncate">· {it}</div>
-                ))}
-              </div>
-              {idx === 0 && (
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
-              )}
+        <div className="flex h-full items-stretch gap-1">
+          <div className={cardClass(slide.left.tone)}>
+            <div className="truncate text-[8px] font-bold">{slide.left.heading}</div>
+            <div className="mt-0.5 flex-1 space-y-0.5 overflow-hidden text-[7px]">
+              {slide.left.items.slice(0, 4).map((it, i) => (
+                <div key={i} className="truncate">· {it}</div>
+              ))}
             </div>
-          )).flatMap((card, i) =>
-            i === 0
-              ? [card, <div key="arrow" className="self-center text-base font-bold">▶</div>]
-              : [card],
-          )}
+          </div>
+          <div className="flex shrink-0 items-center px-0.5 text-base">→</div>
+          <div className={cardClass(slide.right.tone)}>
+            <div className="truncate text-[8px] font-bold">{slide.right.heading}</div>
+            <div className="mt-0.5 flex-1 space-y-0.5 overflow-hidden text-[7px]">
+              {slide.right.items.slice(0, 4).map((it, i) => (
+                <div key={i} className="truncate">· {it}</div>
+              ))}
+            </div>
+          </div>
         </div>
       );
+    }
     case "layered":
       return (
         <div className="flex h-full flex-col justify-center gap-1">

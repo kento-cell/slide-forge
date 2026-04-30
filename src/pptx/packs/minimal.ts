@@ -441,6 +441,24 @@ function renderSummary(
   total: number,
 ) {
   titleBlock(s, slide.title, t);
+  // When auto-illustrated, the image takes the right ~40% so the
+  // text column shrinks. Without an image the items span full width.
+  const hasImage = !!slide.image;
+  const itemsW = hasImage ? (W - 2) * 0.55 : W - 2.5;
+  if (hasImage && slide.image) {
+    const imgX = 1.0 + itemsW + 0.6;
+    const imgY = 2.0;
+    const imgW = W - imgX - 1.0;
+    const imgH = H - 2.5;
+    s.addImage({
+      data: slide.image.dataUrl,
+      x: imgX,
+      y: imgY,
+      w: imgW,
+      h: imgH,
+      sizing: { type: "cover", w: imgW, h: imgH },
+    });
+  }
   const items = slide.items.slice(0, 6);
   items.forEach((it, i) => {
     const y = 2.3 + i * 0.75;
@@ -457,12 +475,13 @@ function renderSummary(
     s.addText(it, {
       x: 1.5,
       y,
-      w: W - 2.5,
+      w: itemsW - 0.5,
       h: 0.6,
       fontFace: t.fontBody,
       fontSize: 18,
       color: t.colors.text,
       valign: "top",
+      fit: "shrink",
     });
   });
   captionLine(s, slide.caption, t);
@@ -480,6 +499,27 @@ function renderSection(
   page: number,
   total: number,
 ) {
+  // Auto-illustration: full-bleed background with a strong white veil
+  // so the chapter index stays the focal point. Matches consulting
+  // pack's approach but inverted (light overlay instead of dark).
+  if (slide.image) {
+    s.addImage({
+      data: slide.image.dataUrl,
+      x: 0,
+      y: 0,
+      w: W,
+      h: H,
+      sizing: { type: "cover", w: W, h: H },
+    });
+    s.addShape("rect", {
+      x: 0,
+      y: 0,
+      w: W,
+      h: H,
+      fill: { color: "FFFFFF", transparency: 25 },
+      line: { color: "FFFFFF", width: 0 },
+    });
+  }
   s.addText(slide.index, {
     x: 1.0,
     y: 1.5,
