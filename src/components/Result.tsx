@@ -44,7 +44,7 @@ export function Result() {
       // download — keeps the initial bundle under the Vite 500 KB
       // warning threshold.
       const { generatePptx } = await import("../pptx/generator");
-      const blob = await generatePptx(deck, settings.theme);
+      const blob = await generatePptx(deck, settings.theme, settings.pack);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       const safe = deck.title.replace(/[^\w\u3000-\u9fff\-_ ]/g, "_").trim() || "deck";

@@ -1,11 +1,20 @@
 import PptxGenJS from "pptxgenjs";
-import type { Deck, Slide, ThemeId } from "../types";
+import type { Deck, Slide, ThemeId, PackId } from "../types";
 import { THEMES } from "./themes";
+import { renderMinimalSlide } from "./packs/minimal";
 
 const W = 13.33;
 const H = 7.5;
 
-export async function generatePptx(deck: Deck, themeId: ThemeId): Promise<Blob> {
+/** Public entry. Dispatches to the appropriate pack's renderer set
+ *  while sharing the pptx setup (LAYOUT_WIDE, title, author, slide
+ *  iteration). pack defaults to "consulting" so v0.4.x decks render
+ *  identically when stored settings have no pack field. */
+export async function generatePptx(
+  deck: Deck,
+  themeId: ThemeId,
+  packId: PackId = "consulting",
+): Promise<Blob> {
   const theme = THEMES[themeId];
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
@@ -16,7 +25,11 @@ export async function generatePptx(deck: Deck, themeId: ThemeId): Promise<Blob> 
   deck.slides.forEach((slide, i) => {
     const s = pptx.addSlide();
     s.background = { color: theme.colors.bg };
-    renderSlide(s, slide, theme, i + 1, total);
+    if (packId === "minimal") {
+      renderMinimalSlide(s, slide, theme, i + 1, total);
+    } else {
+      renderSlide(s, slide, theme, i + 1, total);
+    }
   });
 
   const data = (await pptx.write({ outputType: "blob" })) as Blob;

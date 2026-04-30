@@ -22,9 +22,18 @@ export type ThemeId =
   | "forest"
   | "playful";
 
+/** Design pack — selects the visual language (decoration style,
+ *  typography weight, whitespace bias). Independent of color theme.
+ *  consulting = current v4-style heavy chrome / dense info layout.
+ *  minimal    = strip all decoration, large whitespace, big typography. */
+export type PackId = "consulting" | "minimal";
+
 export interface AppSettings {
   provider: ProviderConfig;
   theme: ThemeId;
+  /** Visual design pack. Defaults to "consulting" for backward
+   *  compatibility with v0.4.x decks. */
+  pack?: PackId;
   setupDone: boolean;
 }
 

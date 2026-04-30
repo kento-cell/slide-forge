@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import type { AppSettings, Deck, ProviderConfig, Screen, ThemeId } from "../types";
+import type { AppSettings, Deck, PackId, ProviderConfig, Screen, ThemeId } from "../types";
 import { loadSettings, saveSettings } from "../lib/storage";
 
 const DEFAULT_SETTINGS: AppSettings = {
   provider: { id: "offline" },
   theme: "navy",
+  pack: "consulting",
   setupDone: false,
 };
 
@@ -20,6 +21,7 @@ interface State {
   setScreen: (s: Screen) => void;
   setProvider: (p: ProviderConfig) => void;
   setTheme: (t: ThemeId) => void;
+  setPack: (p: PackId) => void;
   finishSetup: () => void;
   resetSetup: () => void;
   setPrompt: (text: string, touched: boolean) => void;
@@ -48,6 +50,11 @@ export const useAppStore = create<State>((set, get) => ({
   },
   setTheme: (t) => {
     const next = { ...get().settings, theme: t };
+    saveSettings(next);
+    set({ settings: next });
+  },
+  setPack: (p) => {
+    const next = { ...get().settings, pack: p };
     saveSettings(next);
     set({ settings: next });
   },

@@ -120,3 +120,35 @@ def test_themes_palette_includes_new_themes() -> None:
     types = read("src/types.ts")
     assert '"warm"' in types and '"cool"' in types
     assert '"forest"' in types and '"playful"' in types
+
+
+def test_minimal_pack_covers_all_slide_kinds() -> None:
+    """Minimal pack must dispatch every SlideKind, otherwise switching
+    the pack would silently drop slides on download."""
+    source = extract_function_tail(
+        read("src/pptx/packs/minimal.ts"), "renderMinimalSlide"
+    )
+    cases = switch_cases(source)
+    assert set(ALL_SLIDE_KINDS) <= cases, (
+        f"minimal.ts missing cases: {set(ALL_SLIDE_KINDS) - cases}"
+    )
+
+
+def test_pack_dispatch_wired_in_generator() -> None:
+    """generator.ts must accept packId and dispatch to the minimal
+    pack when requested. Catches a regression where the generator
+    silently ignores the pack and always uses consulting."""
+    gen = read("src/pptx/generator.ts")
+    assert "packId: PackId" in gen
+    assert 'packId === "minimal"' in gen
+    assert "renderMinimalSlide" in gen
+
+
+def test_pack_setting_wired_in_store_and_main() -> None:
+    store = read("src/store/useAppStore.ts")
+    main = read("src/components/Main.tsx")
+    result = read("src/components/Result.tsx")
+    assert "setPack: (p: PackId) => void" in store
+    assert 'pack: "consulting"' in store
+    assert "setPack(p.id)" in main
+    assert "settings.pack" in result
