@@ -73,8 +73,8 @@ export function UpdateBanner() {
   return (
     <div className="border-b border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-2 text-sm">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
-          Update
+        <span className="rounded bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+          更新
         </span>
         {phase === "available" && (
           <>

@@ -103,14 +103,12 @@ function Choice({
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex h-full flex-col items-stretch bg-white p-6 text-left transition hover:bg-slate-50 dark:bg-slate-950 dark:hover:bg-slate-900"
+      className="group relative flex h-full flex-col items-stretch bg-white p-6 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-600 dark:bg-slate-950 dark:hover:bg-slate-900"
     >
       <span className={`absolute left-0 top-0 h-full w-1 ${accentBar}`} />
       <div className="mb-1 font-head text-lg font-semibold tracking-tight">{title}</div>
       <div className="mb-6 text-xs text-slate-500 dark:text-slate-400">{subtitle}</div>
-      <div className="mb-4 text-[11px] uppercase tracking-wider text-slate-400">
-        {time}
-      </div>
+      <div className="mb-4 text-xs text-slate-400">所要 {time}</div>
       <ul className="space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
         {notes.map((n) => (
           <li key={n} className="flex items-baseline gap-2">
@@ -119,8 +117,8 @@ function Choice({
           </li>
         ))}
       </ul>
-      <div className="mt-auto pt-8 text-xs font-medium uppercase tracking-wider text-slate-400 transition group-hover:text-slate-700 dark:group-hover:text-slate-200">
-        Select
+      <div className="mt-auto pt-8 text-sm font-medium text-slate-500 transition group-hover:text-navy-700 dark:group-hover:text-navy-200">
+        この方法で進む →
       </div>
     </button>
   );
@@ -261,7 +259,7 @@ function CloudStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
       <div className="mt-6 flex justify-end gap-3">
         <button className="btn-ghost" onClick={onBack}>キャンセル</button>
         <button className="btn-primary" disabled={!apiKey} onClick={handleSave}>
-          完了
+          完了して開始
         </button>
       </div>
     </div>
@@ -458,7 +456,7 @@ function LocalStage({ onBack, onDone }: { onBack: () => void; onDone: () => void
           disabled={!hasModel || testResult !== "ok"}
           onClick={handleSave}
         >
-          完了
+          完了して開始
         </button>
       </div>
     </div>

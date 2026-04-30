@@ -276,7 +276,7 @@ export function Main() {
       // true), they otherwise get no images and no explanation.
       if (autoIllustrate && !imageGenSupported) {
         setError(
-          `⚠ 自動イラストはチェックされていますが、現在のプロバイダ ` +
+          `警告: 自動画像添付はチェックされていますが、現在のプロバイダ ` +
             `(${settings.provider.id}) は画像生成に未対応です。` +
             "ヘッダーの「プロバイダ変更」 → クラウド → Gemini/OpenAI キー設定で有効化できます。",
         );
@@ -349,7 +349,7 @@ export function Main() {
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6">
         <BackButton onClick={resetSetup} label="プロバイダを変更" topNav />
-        <h1 className="font-head text-xl font-semibold tracking-tight">プロンプト</h1>
+        <h1 className="font-head text-2xl font-semibold tracking-tight">プロンプト</h1>
         <p className="mt-1 text-sm text-slate-500">
           {isOffline
             ? "AI なしモード: Markdown を直接 PowerPoint に変換します"
@@ -526,7 +526,7 @@ export function Main() {
           />
           <div>
             <div className="font-semibold">
-              各スライドに自動で画像を添付
+              自動画像添付 (各スライドの内容に応じた画像を生成)
               {!imageGenSupported && (
                 <span className="ml-2 text-xs text-amber-600">
                   (Gemini / OpenAI に切替えると有効)
