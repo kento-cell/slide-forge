@@ -1,4 +1,70 @@
-import type { Deck, Slide } from "../types";
+import type { Deck, Slide, ThemeId } from "../types";
+
+// Keywords → theme mapping. Order matters: more specific keywords
+// (色名 + 単独で混乱しないもの) are listed first; generic words last.
+// First match wins. Used by Main.tsx to auto-switch the theme based
+// on color hints in the user's prompt before sending to the LLM.
+const THEME_KEYWORDS: { keywords: string[]; theme: ThemeId }[] = [
+  {
+    keywords: ["暖色", "暖かい色", "暖かい雰囲気", "ウォーム", "warm", "オレンジ系", "橙系", "赤系", "暖色系"],
+    theme: "warm",
+  },
+  {
+    keywords: ["寒色", "クール系", "涼しい色", "cool tone", "青系", "ティール", "teal", "寒色系"],
+    theme: "cool",
+  },
+  {
+    keywords: ["フォレスト", "森系", "コーポレート", "高級感", "深緑", "forest", "格調"],
+    theme: "forest",
+  },
+  {
+    keywords: ["カジュアル", "ポップ", "ピンク系", "紫系", "playful", "陽気", "派手", "若者向け"],
+    theme: "playful",
+  },
+  { keywords: ["モノクロ", "白黒", "モノトーン", "monochrome"], theme: "mono" },
+  { keywords: ["明るい雰囲気", "ライト系", "light theme"], theme: "light" },
+  { keywords: ["ネイビー", "紺系", "navy"], theme: "navy" },
+];
+
+/** Scan the user's prompt for color/style hints. Returns the matched
+ *  ThemeId or null. Caller decides whether to apply (e.g., only when
+ *  the detected theme differs from the current one). */
+export function extractThemeDirective(text: string): ThemeId | null {
+  const haystack = text.toLowerCase();
+  for (const entry of THEME_KEYWORDS) {
+    for (const kw of entry.keywords) {
+      if (haystack.includes(kw.toLowerCase())) return entry.theme;
+    }
+  }
+  return null;
+}
+
+/** Tally slide kinds in the parsed deck. Used by the dominance warning
+ *  and by e2e tests to assert variety. */
+export function getSlideKindCounts(deck: Deck): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const slide of deck.slides) {
+    counts[slide.kind] = (counts[slide.kind] || 0) + 1;
+  }
+  return counts;
+}
+
+/** When the LLM defaults to bullets too aggressively (small Ollama
+ *  models often do this), the deck looks monotonous. We surface a
+ *  warning so the user knows to switch to a stronger model rather
+ *  than wondering why the slide variety prompt isn't taking effect.
+ *  Threshold: bullets / total <= 0.7 = OK; above that = warn. */
+export function getBulletDominanceWarning(deck: Deck): string | null {
+  const counts = getSlideKindCounts(deck);
+  const bullets = counts.bullets || 0;
+  const total = deck.slides.length;
+  if (total === 0) return null;
+  if (bullets / total <= 0.7) return null;
+  return (
+    `⚠ LLM がスライド型を多様化していません (${total} 枚中 ${bullets} 枚が箇条書き)。` +
+    "Cloud (Gemini/Claude) または大きいローカルモデルを推奨します。"
+  );
+}
 
 // ざっくり md → Deck の変換。
 // # = カバー / ## = 各スライド / -, * = 箇条書き / | ... | = 表 / > = 引用

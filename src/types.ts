@@ -13,7 +13,14 @@ export interface ProviderConfig {
   endpoint?: string;
 }
 
-export type ThemeId = "navy" | "light" | "mono";
+export type ThemeId =
+  | "navy"
+  | "light"
+  | "mono"
+  | "warm"
+  | "cool"
+  | "forest"
+  | "playful";
 
 export interface AppSettings {
   provider: ProviderConfig;

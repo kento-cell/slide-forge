@@ -4,7 +4,11 @@ import { DEFAULT_PROMPT, OFFLINE_SAMPLE_MARKDOWN } from "../samples/defaultPromp
 import { THEMES } from "../pptx/themes";
 import { callLLM } from "../providers";
 import { SYSTEM_PROMPT, buildUserPrompt } from "../lib/llmPrompt";
-import { parseMarkdown } from "../md/parser";
+import {
+  parseMarkdown,
+  extractThemeDirective,
+  getBulletDominanceWarning,
+} from "../md/parser";
 import { useElapsedSec, formatElapsed } from "../lib/useElapsedSec";
 import {
   ACCEPTED_TEXT_AND_IMAGE_FILES,
@@ -220,6 +224,15 @@ export function Main() {
       return;
     }
 
+    // Auto-switch theme when the prompt contains a color/style keyword.
+    // Done BEFORE the LLM call so the user immediately sees the chosen
+    // palette reflected in the result thumbnails. The LLM itself has no
+    // control over colors — only Main here does.
+    const detectedTheme = extractThemeDirective(userInput);
+    if (detectedTheme && detectedTheme !== settings.theme) {
+      setTheme(detectedTheme);
+    }
+
     // Wire an AbortController so the user can cancel mid-flight and
     // we still bound the worst case with a timeout. The hard timeout
     // and the user's cancel both flow through the same signal so the
@@ -249,6 +262,17 @@ export function Main() {
       if (parsed.slides.length === 0 && pendingImages.length === 0) {
         throw new Error(
           "スライドを抽出できませんでした。# / ## の見出しを使ってください。",
+        );
+      }
+      // Surface the silent-skip case explicitly: if the user kept the
+      // illustrate checkbox on after switching to a provider that
+      // can't generate images (e.g., Ollama → autoIllustrate stays
+      // true), they otherwise get no images and no explanation.
+      if (autoIllustrate && !imageGenSupported) {
+        setError(
+          `⚠ 自動イラストはチェックされていますが、現在のプロバイダ ` +
+            `(${settings.provider.id}) は画像生成に未対応です。` +
+            "⚙ → クラウドに切替 → Gemini/OpenAI キー設定で有効化できます。",
         );
       }
       // Auto-illustrate each cover/bullets/section/summary slide
@@ -290,6 +314,8 @@ export function Main() {
         : cleaned;
       setDeck(finalDeck, finalRaw);
       setPendingImages([]);
+      const warning = getBulletDominanceWarning(finalDeck);
+      if (warning) setError(warning);
       setScreen("result");
     } catch (e) {
       if (controller.signal.aborted) {
