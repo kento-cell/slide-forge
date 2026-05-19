@@ -95,7 +95,7 @@ Recommended capture method:
 ```bash
 # Run the desktop app
 cd E:/slide-forge
-$env:PATH = "C:/Users/<user>/.cargo/bin;$env:PATH"
+$env:PATH = "$env:USERPROFILE/.cargo/bin;$env:PATH"
 npm run tauri:dev
 # Use Win+Shift+S to capture each screen, save as PNG
 ```
