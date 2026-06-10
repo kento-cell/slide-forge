@@ -67,7 +67,7 @@
 
 - **私の手元に Mac / Linux 実機なし** — 実ユーザーで動作確認待ち
 - **コードサイン未取得** — Win/Mac の警告 UI が出る。OSS バナーで容認可
-- **更新鍵の単一管理** — `E:/slide-forge-update.key` 1 個のみ。バックアップ必須(別ストレージへ)
+- **更新鍵の単一管理** — 署名秘密鍵はローカルにのみ保持し、リポジトリ外で管理。バックアップ必須(別ストレージへ)
 
 ---
 
@@ -104,7 +104,7 @@
 ```bash
 # 1. GitHub Secrets を一度だけ設定
 #    Settings → Secrets and variables → Actions
-#    - TAURI_SIGNING_PRIVATE_KEY = E:/slide-forge-update.key の中身
+#    - TAURI_SIGNING_PRIVATE_KEY = ローカル署名秘密鍵ファイルの中身
 #    - TAURI_SIGNING_PRIVATE_KEY_PASSWORD = (空文字)
 
 # 2. private key を別所にバックアップ → ローカル削除
